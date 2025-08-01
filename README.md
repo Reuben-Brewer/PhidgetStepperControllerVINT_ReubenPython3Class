@@ -24,7 +24,7 @@ www.reubotics.com
 
 Apache 2 License
 
-Software Revision C, 07/29/2025
+Software Revision D, 08/01/2025
 
 Verified working on:
 
@@ -36,13 +36,13 @@ Windows 10/11 64-bit
 
 ########################### Python module installation instructions, all OS's
 
-PhidgetStepperControllerVINT_ReubenPython3Class, ListOfModuleDependencies: ['LowPassFilterForDictsOfLists_ReubenPython2and3Class', 'Phidget22']
+PhidgetStepperControllerVINT_ReubenPython3Class, ListOfModuleDependencies: ['LowPassFilterForDictsOfLists_ReubenPython2and3Class', 'numpy', 'Phidget22']
 
-PhidgetStepperControllerVINT_ReubenPython3Class, ListOfModuleDependencies_TestProgram: ['keyboard', 'MyPlotterPureTkinterStandAloneProcess_ReubenPython2and3Class']
+PhidgetStepperControllerVINT_ReubenPython3Class, ListOfModuleDependencies_TestProgram: ['EntryListWithBlinking_ReubenPython2and3Class', 'keyboard', 'MyPlotterPureTkinterStandAloneProcess_ReubenPython2and3Class']
 
-PhidgetStepperControllerVINT_ReubenPython3Class, ListOfModuleDependencies_NestedLayers: ['GetCPUandMemoryUsageOfProcessByPID_ReubenPython3Class', 'numpy', 'pexpect', 'psutil', 'pyautogui']
+PhidgetStepperControllerVINT_ReubenPython3Class, ListOfModuleDependencies_NestedLayers: ['future.builtins', 'GetCPUandMemoryUsageOfProcessByPID_ReubenPython3Class', 'numpy', 'pexpect', 'psutil', 'pyautogui']
 
-PhidgetStepperControllerVINT_ReubenPython3Class, ListOfModuleDependencies_All:['GetCPUandMemoryUsageOfProcessByPID_ReubenPython3Class', 'keyboard', 'LowPassFilterForDictsOfLists_ReubenPython2and3Class', 'MyPlotterPureTkinterStandAloneProcess_ReubenPython2and3Class', 'numpy', 'pexpect', 'Phidget22', 'psutil', 'pyautogui']
+PhidgetStepperControllerVINT_ReubenPython3Class, ListOfModuleDependencies_All:['EntryListWithBlinking_ReubenPython2and3Class', 'future.builtins', 'GetCPUandMemoryUsageOfProcessByPID_ReubenPython3Class', 'keyboard', 'LowPassFilterForDictsOfLists_ReubenPython2and3Class', 'MyPlotterPureTkinterStandAloneProcess_ReubenPython2and3Class', 'numpy', 'pexpect', 'Phidget22', 'psutil', 'pyautogui']
 
 https://pypi.org/project/Phidget22/#files
 
