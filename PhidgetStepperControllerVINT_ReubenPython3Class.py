@@ -6,7 +6,7 @@ reuben.brewer@gmail.com
 www.reubotics.com
 
 Apache 2 License
-Software Revision C, 07/29/2025
+Software Revision D, 08/01/2025
 
 Verified working on: Python 3.11/3.12 for Windows 10, 11 64-bit.
 '''
@@ -34,6 +34,7 @@ import inspect #To enable 'TellWhichFileWereIn'
 import threading
 import traceback
 import subprocess
+import numpy
 from tkinter import *
 import tkinter.font as tkFont
 from tkinter import ttk
@@ -46,6 +47,7 @@ from Phidget22.Phidget import *
 from Phidget22.Devices.Log import *
 from Phidget22.LogLevel import *
 from Phidget22.Devices.Stepper import *
+from Phidget22.Devices.VoltageInput import *
 ##########################################
 
 ##########################################
@@ -114,7 +116,12 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
         #########################################################
         self.EXIT_PROGRAM_FLAG = 0
         self.OBJECT_CREATED_SUCCESSFULLY_FLAG = 0
-        self.HasOnAttachEverFiredPreviouslyFlag = 0
+
+        self.StepperObjectAttachedAndOpenedFlag = 0
+        self.VoltageInputObjectAttachedAndOpenedFlag = 0
+
+        self.StepperObjectHasOnAttachEverFiredPreviouslyFlag = 0
+        self.VoltageInputObjectHasOnAttachEverFiredPreviouslyFlag = 0
 
         self.FailsafeEnabledFlag = 0
 
@@ -140,6 +147,13 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
                                                            ("CurrentLimit_Max_PhidgetsUnits", -1)])
 
         self.Stepper_ChangeableSettingsReadFromDevice = dict([("DataRate_Hz", -1)])
+        
+        self.VoltageInput_ImmutableLimitsReadFromDevice = dict([("DataInterval_Min_Milliseconds", -1),
+                                                               ("DataInterval_Max_Milliseconds", -1),
+                                                               ("DataRate_Min_Hz", -1),
+                                                               ("DataRate_Max_Hz", -1)])
+
+        self.VoltageInput_ChangeableSettingsReadFromDevice = dict([("DataRate_Hz", -1)])
         #########################################################
         #########################################################
         
@@ -190,6 +204,18 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
         self.HoldingCurrentLimit_ToBeSet_PhidgetsUnits = 0
         self.HoldingCurrentLimit_NeedsToBeSetFlag = 0
         self.HoldingCurrentLimit_GUIscale_NeedsToBeSetFlag = 0
+
+        self.VoltageInput_Value_Raw = 0.0
+        self.VoltageInput_Value_Filtered = 0.0
+        self.LastVoltageInput_Value_Filtered = 0.0
+
+        self.VoltageInputDerivative_Value_Raw = 0.0
+        self.VoltageInputDerivative_Value_Filtered = 0.0
+
+        self.StallDetectionEnabledFlag = 0
+        self.StallDetected_LatchingState = 0
+        self.HomeHard_NeedsToBeSetFlag = 0
+        self.StepperIsHomingAgainstHardStopFlag = 0
 
         self.MostRecentDataDict = dict()
         #########################################################
@@ -423,6 +449,33 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
 
         #########################################################
         #########################################################
+        if "HomeStepperAgainstHardStopOnStartupFlag" in SetupDict:
+            self.HomeStepperAgainstHardStopOnStartupFlag = self.PassThrough0and1values_ExitProgramOtherwise("HomeStepperAgainstHardStopOnStartupFlag", SetupDict["HomeStepperAgainstHardStopOnStartupFlag"])
+        else:
+            self.HomeStepperAgainstHardStopOnStartupFlag = 1
+
+        print("PhidgetStepperControllerVINT_ReubenPython3Class __init__: UsePhidgetsLoggingInternalToThisClassObjectFlag: " + str(self.UsePhidgetsLoggingInternalToThisClassObjectFlag))
+        #########################################################
+        #########################################################
+
+        #########################################################
+        #########################################################
+        if "HomeStepperAgainstHardStop_Direction" in SetupDict:
+            self.HomeStepperAgainstHardStop_Direction = int(self.PassThroughFloatValuesInRange_ExitProgramOtherwise("HomeStepperAgainstHardStop_Direction", SetupDict["HomeStepperAgainstHardStop_Direction"], -1.0, 1.0))
+
+            if self.HomeStepperAgainstHardStop_Direction not in [-1, 1]:
+                print("PhidgetStepperControllerVINT_ReubenPython3Class __init__: HomeStepperAgainstHardStop_Direction must be -1 or 1.")
+                return
+
+        else:
+            self.HomeStepperAgainstHardStop_Direction = 1
+
+        print("PhidgetStepperControllerVINT_ReubenPython3Class __init__: HomeStepperAgainstHardStop_Direction: " + str(self.HomeStepperAgainstHardStop_Direction))
+        #########################################################
+        #########################################################
+
+        #########################################################
+        #########################################################
         if "WaitForAttached_TimeoutDuration_Milliseconds" in SetupDict:
             self.WaitForAttached_TimeoutDuration_Milliseconds = int(self.PassThroughFloatValuesInRange_ExitProgramOtherwise("WaitForAttached_TimeoutDuration_Milliseconds", SetupDict["WaitForAttached_TimeoutDuration_Milliseconds"], 0.0, 60000.0))
 
@@ -502,6 +555,42 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
         print("PhidgetStepperControllerVINT_ReubenPython3Class __init__: MainThread_TimeToSleepEachLoop: " + str(self.MainThread_TimeToSleepEachLoop))
         #########################################################
         #########################################################
+        
+        #########################################################
+        #########################################################
+        if "VoltageInput_Value_ExponentialSmoothingFilterLambda" in SetupDict:
+            self.VoltageInput_Value_ExponentialSmoothingFilterLambda = self.PassThroughFloatValuesInRange_ExitProgramOtherwise("VoltageInput_Value_ExponentialSmoothingFilterLambda", SetupDict["VoltageInput_Value_ExponentialSmoothingFilterLambda"], 0.0, 1.0)
+
+        else:
+            self.VoltageInput_Value_ExponentialSmoothingFilterLambda = 0.95 #new_filtered_value = k * raw_sensor_value + (1 - k) * old_filtered_value
+
+        print("PhidgetStepperControllerVINT_ReubenPython3Class __init__: VoltageInput_Value_ExponentialSmoothingFilterLambda: " + str(self.VoltageInput_Value_ExponentialSmoothingFilterLambda))
+        #########################################################
+        #########################################################
+
+        #########################################################
+        #########################################################
+        if "VoltageInputDerivative_Value_ExponentialSmoothingFilterLambda" in SetupDict:
+            self.VoltageInputDerivative_Value_ExponentialSmoothingFilterLambda = self.PassThroughFloatValuesInRange_ExitProgramOtherwise("VoltageInputDerivative_Value_ExponentialSmoothingFilterLambda", SetupDict["VoltageInputDerivative_Value_ExponentialSmoothingFilterLambda"], 0.0, 1.0)
+
+        else:
+            self.VoltageInputDerivative_Value_ExponentialSmoothingFilterLambda = 0.95 #new_filtered_value = k * raw_sensor_value + (1 - k) * old_filtered_value
+
+        print("PhidgetStepperControllerVINT_ReubenPython3Class __init__: VoltageInputDerivative_Value_ExponentialSmoothingFilterLambda: " + str(self.VoltageInputDerivative_Value_ExponentialSmoothingFilterLambda))
+        #########################################################
+        #########################################################
+
+        #########################################################
+        #########################################################
+        if "StallDetectionThreshold" in SetupDict:
+            self.StallDetectionThreshold = self.PassThroughFloatValuesInRange_ExitProgramOtherwise("StallDetectionThreshold", SetupDict["StallDetectionThreshold"], 0.0, 1000000.0)
+
+        else:
+            self.StallDetectionThreshold = 1.0
+
+        print("PhidgetStepperControllerVINT_ReubenPython3Class __init__: StallDetectionThreshold: " + str(self.StallDetectionThreshold))
+        #########################################################
+        #########################################################
 
         #########################################################
         #########################################################
@@ -510,7 +599,9 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
         #new_filtered_value = k * raw_sensor_value + (1 - k) * old_filtered_value
         self.LowPassFilterForDictsOfLists_ReubenPython2and3ClassObject_DictOfVariableFilterSettings = dict([("DataStreamingFrequency_CalculatedFromPositionChangeCallback", dict([("UseMedianFilterFlag", 1), ("UseExponentialSmoothingFilterFlag", 1),("ExponentialSmoothingFilterLambda", 0.05)])),
                                                                                                             ("DataStreamingFrequency_CalculatedFromMainThread", dict([("UseMedianFilterFlag", 1), ("UseExponentialSmoothingFilterFlag", 1),("ExponentialSmoothingFilterLambda", 0.05)])),
-                                                                                                            ("DataStreamingFrequency_CalculatedFromGUIthread", dict([("UseMedianFilterFlag", 1), ("UseExponentialSmoothingFilterFlag", 1), ("ExponentialSmoothingFilterLambda", 0.05)]))])
+                                                                                                            ("DataStreamingFrequency_CalculatedFromGUIthread", dict([("UseMedianFilterFlag", 1), ("UseExponentialSmoothingFilterFlag", 1), ("ExponentialSmoothingFilterLambda", 0.05)])),
+                                                                                                            ("VoltageInput_Value", dict([("UseMedianFilterFlag", 1), ("UseExponentialSmoothingFilterFlag", 1), ("ExponentialSmoothingFilterLambda", self.VoltageInput_Value_ExponentialSmoothingFilterLambda)])),
+                                                                                                            ("VoltageInputDerivative_Value", dict([("UseMedianFilterFlag", 1), ("UseExponentialSmoothingFilterFlag", 1), ("ExponentialSmoothingFilterLambda", self.VoltageInputDerivative_Value_ExponentialSmoothingFilterLambda)]))])
 
         self.LowPassFilterForDictsOfLists_ReubenPython2and3ClassObject_SetupDict = dict([("DictOfVariableFilterSettings", self.LowPassFilterForDictsOfLists_ReubenPython2and3ClassObject_DictOfVariableFilterSettings)])
 
@@ -593,6 +684,7 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
         #########################################################
         try:
 
+            #########################################################
             self.Stepper_Object.setOnAttachHandler(self.StepperOnAttachCallback)
             self.Stepper_Object.setOnDetachHandler(self.StepperOnDetachCallback)
             self.Stepper_Object.setOnErrorHandler(self.StepperOnErrorCallback)
@@ -604,11 +696,12 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
 
             self.Stepper_Object.openWaitForAttachment(self.WaitForAttached_TimeoutDuration_Milliseconds)
 
-            self.PhidgetsDeviceConnectedFlag = 1
             print("PhidgetStepperControllerVINT_ReubenPython3Class __init__: Attached the Stepper object.")
+            #########################################################
 
         except PhidgetException as e:
-            self.PhidgetsDeviceConnectedFlag = 0
+
+            #########################################################
             print("PhidgetStepperControllerVINT_ReubenPython3Class __init__: Failed to call 'openWaitForAttachment()', exception:  %i: %s" % (e.code, e.details))
 
             try:
@@ -617,7 +710,8 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
 
             except PhidgetException as e:
                 print("PhidgetStepperControllerVINT_ReubenPython3Class __init__: Failed to call 'close()', exception:  %i: %s" % (e.code, e.details))
-                
+            #########################################################
+
         #########################################################
         #########################################################
         
@@ -630,7 +724,7 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
         ##########################################################################################################
         ##########################################################################################################
         ##########################################################################################################
-        if self.PhidgetsDeviceConnectedFlag == 1:
+        if self.StepperObjectAttachedAndOpenedFlag == 1:
 
             ##########################################################################################################
             ##########################################################################################################
@@ -722,6 +816,26 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
             #########################################################
             #########################################################
 
+            ##########################################################################################################
+            ##########################################################################################################
+            ##########################################################################################################
+
+            ########################################################################################################## unicorn
+            ##########################################################################################################
+            ##########################################################################################################
+            if self.DetectedDeviceName.find("4A Stepper Phidget") != -1 or self.DetectedDeviceID == 149:
+
+                try:
+                    self.VoltageInput_Object = VoltageInput()
+                    self.VoltageInput_Object.setHubPort(self.VINT_DesiredPortNumber)
+                    self.VoltageInput_Object.setOnVoltageChangeHandler(self.VoltageInputOnVoltageChangeCallback)
+                    self.VoltageInput_Object.setOnAttachHandler(self.VoltageInputOnAttachCallback)
+                    self.VoltageInput_Object.setOnDetachHandler(self.VoltageInputOnDetachCallback)
+                    self.VoltageInput_Object.setOnErrorHandler(self.VoltageInputOnErrorCallback)
+                    self.VoltageInput_Object.openWaitForAttachment(self.WaitForAttached_TimeoutDuration_Milliseconds)
+
+                except PhidgetException as e:
+                    print("Failed to call open VoltageInput_Object, Phidget Exception %i: %s" % (e.code, e.details))
             ##########################################################################################################
             ##########################################################################################################
             ##########################################################################################################
@@ -939,40 +1053,40 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
             ##########################################################################################################
             ##########################################################################################################
             if "InitialSettingsDict" in SetupDict:
-                InitialSettingsDict = SetupDict["InitialSettingsDict"]
+                self.InitialSettingsDict = SetupDict["InitialSettingsDict"]
 
                 #########################################################
                 #########################################################
-                if "Position_ToBeSet_PhidgetsUnits" in InitialSettingsDict:
-                    self.Position_ToBeSet_PhidgetsUnits = self.LimitNumber_FloatOutputOnly(self.Position_Min_PhidgetsUnits_UserSet, self.Position_Max_PhidgetsUnits_UserSet, InitialSettingsDict["Position_ToBeSet_PhidgetsUnits"])
+                if "Position_ToBeSet_PhidgetsUnits" in self.InitialSettingsDict:
+                    self.Position_ToBeSet_PhidgetsUnits = self.LimitNumber_FloatOutputOnly(self.Position_Min_PhidgetsUnits_UserSet, self.Position_Max_PhidgetsUnits_UserSet, self.InitialSettingsDict["Position_ToBeSet_PhidgetsUnits"])
                  #########################################################
                 #########################################################
     
                 #########################################################
                 #########################################################
-                if "VelocityLimit_ToBeSet_PhidgetsUnits" in InitialSettingsDict:
-                    self.VelocityLimit_ToBeSet_PhidgetsUnits = self.LimitNumber_FloatOutputOnly(self.VelocityLimit_Min_PhidgetsUnits_UserSet, self.VelocityLimit_Max_PhidgetsUnits_UserSet, InitialSettingsDict["VelocityLimit_ToBeSet_PhidgetsUnits"])
+                if "VelocityLimit_ToBeSet_PhidgetsUnits" in self.InitialSettingsDict:
+                    self.VelocityLimit_ToBeSet_PhidgetsUnits = self.LimitNumber_FloatOutputOnly(self.VelocityLimit_Min_PhidgetsUnits_UserSet, self.VelocityLimit_Max_PhidgetsUnits_UserSet, self.InitialSettingsDict["VelocityLimit_ToBeSet_PhidgetsUnits"])
                 #########################################################
                 #########################################################
                 
                 #########################################################
                 #########################################################
-                if "Acceleration_ToBeSet_PhidgetsUnits" in InitialSettingsDict:
-                    self.Acceleration_ToBeSet_PhidgetsUnits = self.LimitNumber_FloatOutputOnly(self.Acceleration_Min_PhidgetsUnits_UserSet, self.Acceleration_Max_PhidgetsUnits_UserSet, InitialSettingsDict["Acceleration_ToBeSet_PhidgetsUnits"])
+                if "Acceleration_ToBeSet_PhidgetsUnits" in self.InitialSettingsDict:
+                    self.Acceleration_ToBeSet_PhidgetsUnits = self.LimitNumber_FloatOutputOnly(self.Acceleration_Min_PhidgetsUnits_UserSet, self.Acceleration_Max_PhidgetsUnits_UserSet, self.InitialSettingsDict["Acceleration_ToBeSet_PhidgetsUnits"])
                 #########################################################
                 #########################################################
                 
                 #########################################################
                 #########################################################
-                if "CurrentLimit_ToBeSet_PhidgetsUnits" in InitialSettingsDict:
-                    self.CurrentLimit_ToBeSet_PhidgetsUnits = self.LimitNumber_FloatOutputOnly(self.CurrentLimit_Min_PhidgetsUnits_UserSet, self.CurrentLimit_Max_PhidgetsUnits_UserSet, InitialSettingsDict["CurrentLimit_ToBeSet_PhidgetsUnits"])
+                if "CurrentLimit_ToBeSet_PhidgetsUnits" in self.InitialSettingsDict:
+                    self.CurrentLimit_ToBeSet_PhidgetsUnits = self.LimitNumber_FloatOutputOnly(self.CurrentLimit_Min_PhidgetsUnits_UserSet, self.CurrentLimit_Max_PhidgetsUnits_UserSet, self.InitialSettingsDict["CurrentLimit_ToBeSet_PhidgetsUnits"])
                 #########################################################
                 #########################################################
                 
                 #########################################################
                 #########################################################
-                if "HoldingCurrentLimit_ToBeSet_PhidgetsUnits" in InitialSettingsDict:
-                    self.HoldingCurrentLimit_ToBeSet_PhidgetsUnits = self.LimitNumber_FloatOutputOnly(self.HoldingCurrentLimit_Min_PhidgetsUnits_UserSet, self.HoldingCurrentLimit_Max_PhidgetsUnits_UserSet, InitialSettingsDict["HoldingCurrentLimit_ToBeSet_PhidgetsUnits"])
+                if "HoldingCurrentLimit_ToBeSet_PhidgetsUnits" in self.InitialSettingsDict:
+                    self.HoldingCurrentLimit_ToBeSet_PhidgetsUnits = self.LimitNumber_FloatOutputOnly(self.HoldingCurrentLimit_Min_PhidgetsUnits_UserSet, self.HoldingCurrentLimit_Max_PhidgetsUnits_UserSet, self.InitialSettingsDict["HoldingCurrentLimit_ToBeSet_PhidgetsUnits"])
                 #########################################################
                 #########################################################
 
@@ -1074,8 +1188,8 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
             self.Stepper_Object.setRescaleFactor(1.0)
             self.Stepper_ChangeableSettingsReadFromDevice["RescaleFactor"] = self.Stepper_Object.getRescaleFactor()
 
-            if self.HasOnAttachEverFiredPreviouslyFlag == 1:
-                self.SetPosition(self.Position_ToBeSet_PhidgetsUnits, "PhidgetsUnits")
+            if self.StepperObjectHasOnAttachEverFiredPreviouslyFlag == 1:
+                self.SetPosition(self.Position_ToBeSet_PhidgetsUnits, "PhidgetsUnits", OverrideUserSetLimitsFlag=0)
                 self.SetVelocityLimit(self.VelocityLimit_ToBeSet_PhidgetsUnits)
                 self.SetAcceleration(self.Acceleration_ToBeSet_PhidgetsUnits)
                 self.SetCurrentLimit(self.CurrentLimit_ToBeSet_PhidgetsUnits)
@@ -1091,14 +1205,15 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
 
             ##########################################################################################################
             ##########################################################################################################
-            if self.HasOnAttachEverFiredPreviouslyFlag == 0:
-                self.HasOnAttachEverFiredPreviouslyFlag = 1
+            if self.StepperObjectHasOnAttachEverFiredPreviouslyFlag == 0:
+                self.StepperObjectHasOnAttachEverFiredPreviouslyFlag = 1
             ##########################################################################################################
             ##########################################################################################################
 
             ##########################################################################################################
             ##########################################################################################################
-            self.PhidgetsDeviceConnectedFlag = 1
+            print("StepperOnAttachCallback event fired!")
+            self.StepperObjectAttachedAndOpenedFlag = 1
             ##########################################################################################################
             ##########################################################################################################
 
@@ -1112,8 +1227,9 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
         except PhidgetException as e:
 
             #########################################################
-            print("Failed to motor limits, Phidget Exception %i: %s" % (e.code, e.details))
+            print("StepperOnAttachCallback failed, Phidget Exception %i: %s" % (e.code, e.details))
             #traceback.print_exc()
+            self.StepperObjectAttachedAndOpenedFlag = 0
             return
             #########################################################
 
@@ -1129,13 +1245,12 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
     ##########################################################################################################
     ##########################################################################################################
     def StepperOnDetachCallback(self, HandlerSelf):
-        self.PhidgetsDeviceConnectedFlag = 0
+        self.StepperObjectAttachedAndOpenedFlag = 0
 
         self.MyPrint_WithoutLogFile("$$$$$$$$$$ StepperOnDetachCallback Detached Event! $$$$$$$$$$")
 
         try:
             self.Stepper_Object.openWaitForAttachment(self.WaitForAttached_TimeoutDuration_Milliseconds)
-            time.sleep(0.250)
 
         except PhidgetException as e:
             self.MyPrint_WithoutLogFile("StepperOnDetachCallback failed to waitForAttach, Phidget Exception %i: %s" % (e.code, e.details))
@@ -1197,7 +1312,211 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
     ##########################################################################################################
     ##########################################################################################################
 
-    ###########################################################################################################
+    ##########################################################################################################
+    ##########################################################################################################
+    ##########################################################################################################
+    ##########################################################################################################
+    def VoltageInputOnAttachCallback(self, HandlerSelf):
+
+        try:
+            ##########################################################################################################
+            ##########################################################################################################
+            self.VoltageInput_ImmutableLimitsReadFromDevice["DataInterval_Min_Milliseconds"] = self.Stepper_Object.getMinDataInterval()
+            self.VoltageInput_ImmutableLimitsReadFromDevice["DataInterval_Max_Milliseconds"] = self.Stepper_Object.getMaxDataInterval()
+
+            self.VoltageInput_ImmutableLimitsReadFromDevice["DataRate_Min_Hz"] = self.VoltageInput_Object.getMinDataRate()
+            self.VoltageInput_ImmutableLimitsReadFromDevice["DataRate_Max_Hz"] = self.VoltageInput_Object.getMaxDataRate()
+
+            self.VoltageInput_Object.setDataRate(int(self.VoltageInput_ImmutableLimitsReadFromDevice["DataRate_Max_Hz"]))
+            self.VoltageInput_ChangeableSettingsReadFromDevice["DataRate_Hz"] = self.VoltageInput_Object.getDataRate()
+
+            self.VoltageInput_Object.setVoltageChangeTrigger(0) #continuous streaming.
+            ##########################################################################################################
+            ##########################################################################################################
+
+            ##########################################################################################################
+            ##########################################################################################################
+            if self.VoltageInputObjectHasOnAttachEverFiredPreviouslyFlag == 0:
+                self.VoltageInputObjectHasOnAttachEverFiredPreviouslyFlag = 1
+            ##########################################################################################################
+            ##########################################################################################################
+
+            self.VoltageInputObjectAttachedAndOpenedFlag = 1
+
+            print("VoltageInputOnAttachCallback event fired!")
+
+        except PhidgetException as e:
+            self.VoltageInputObjectAttachedAndOpenedFlag = 0
+            print("VoltageInputOnAttachCallback failed, exception %i: %s" % (e.code, e.details))
+            traceback.print_exc()
+        
+    ##########################################################################################################
+    ##########################################################################################################
+    ##########################################################################################################
+    ##########################################################################################################
+
+    ##########################################################################################################
+    ##########################################################################################################
+    ##########################################################################################################
+    ##########################################################################################################
+    def VoltageInputOnDetachCallback(self, HandlerSelf):
+        self.VoltageInputObjectAttachedAndOpenedFlag = 0
+
+        self.MyPrint_WithoutLogFile("$$$$$$$$$$ VoltageInputOnDetachCallback Detached Event! $$$$$$$$$$")
+
+        try:
+            self.VoltageInput_Object.openWaitForAttachment(self.WaitForAttached_TimeoutDuration_Milliseconds)
+
+        except PhidgetException as e:
+            self.MyPrint_WithoutLogFile("VoltageInputOnDetachCallback failed to waitForAttach, Phidget Exception %i: %s" % (e.code, e.details))
+
+    ##########################################################################################################
+    ##########################################################################################################
+    ##########################################################################################################
+    ##########################################################################################################
+
+    ##########################################################################################################
+    ##########################################################################################################
+    ##########################################################################################################
+    ##########################################################################################################
+    def VoltageInputOnVoltageChangeCallback(self, HandlerSelf, Voltage):
+
+        ##########################################################################################################
+        ##########################################################################################################
+        ##########################################################################################################
+        # print("VoltageInputOnVoltageChangeCallback: Voltage = " + str(Voltage))
+
+        self.LastVoltageInput_Value_Filtered = self.VoltageInput_Value_Filtered
+
+        VoltageInput_Value_ResultsDict = self.LowPassFilterForDictsOfLists_ReubenPython2and3ClassObject.AddDataDictFromExternalProgram(dict([("VoltageInput_Value", Voltage)]))
+
+        self.VoltageInput_Value_Raw = VoltageInput_Value_ResultsDict["VoltageInput_Value"]["Raw_MostRecentValuesList"][0]
+        self.VoltageInput_Value_Filtered = VoltageInput_Value_ResultsDict["VoltageInput_Value"]["Filtered_MostRecentValuesList"][0]
+        ##########################################################################################################
+        ##########################################################################################################
+        ##########################################################################################################
+
+        ########################################################################################################## Calculate derivative
+        ##########################################################################################################
+        ##########################################################################################################
+        try:  # in case there's a division-by-zero.
+
+            ##########################################################################################################
+            VoltageInputDerivative_Value_Raw_TEMP = (self.VoltageInput_Value_Filtered - self.LastVoltageInput_Value_Filtered)/(1.0/self.VoltageInput_ChangeableSettingsReadFromDevice["DataRate_Hz"])
+
+            VoltageInputDerivative_Value_ResultsDict = self.LowPassFilterForDictsOfLists_ReubenPython2and3ClassObject.AddDataDictFromExternalProgram(dict([("VoltageInputDerivative_Value", VoltageInputDerivative_Value_Raw_TEMP)]))
+
+            self.VoltageInputDerivative_Value_Raw = VoltageInputDerivative_Value_ResultsDict["VoltageInputDerivative_Value"]["Raw_MostRecentValuesList"][0]
+            self.VoltageInputDerivative_Value_Filtered = VoltageInputDerivative_Value_ResultsDict["VoltageInputDerivative_Value"]["Filtered_MostRecentValuesList"][0]
+            ##########################################################################################################
+
+        except:
+            pass
+        ##########################################################################################################
+        ##########################################################################################################
+        ##########################################################################################################
+
+    ##########################################################################################################
+    ##########################################################################################################
+    ##########################################################################################################
+    ##########################################################################################################
+
+    ##########################################################################################################
+    ##########################################################################################################
+    ##########################################################################################################
+    ##########################################################################################################
+    def VoltageInputOnErrorCallback(self, HandlerSelf):
+        self.MyPrint_WithoutLogFile("----------")
+        self.MyPrint_WithoutLogFile("StepperOnErrorCallbackVoltageInputOnErrorCallback Code: " + ErrorEventCode.getName(code) + ", Description: " + str(description))
+        self.MyPrint_WithoutLogFile("----------")
+    ##########################################################################################################
+    ##########################################################################################################
+    ##########################################################################################################
+    ##########################################################################################################
+
+    ##########################################################################################################
+    ##########################################################################################################
+    ##########################################################################################################
+    ##########################################################################################################
+    def DetectStallFromMeasuringVoltageSupply(self):
+
+        if self.DetectedDeviceName.find("4A Stepper Phidget") != -1 or self.DetectedDeviceID == 149:
+
+            if self.CurrentTime_CalculatedFromMainThread >= 0.25: #To prevent spikes from data initialization
+
+                if self.StallDetectionEnabledFlag == 1:
+
+                    if self.VoltageInputDerivative_Value_Filtered >= self.StallDetectionThreshold:
+                        print("DetectStallFromMeasuringVoltageSupply: event fired, VoltageInputDerivative_Value_Filtered = " + str(self.VoltageInputDerivative_Value_Filtered) + ", StallDetectionThreshold: " + str(self.StallDetectionThreshold))
+                        self.StallDetected_LatchingState = 1
+
+    ##########################################################################################################
+    ##########################################################################################################
+    ##########################################################################################################
+    ##########################################################################################################
+
+    ##########################################################################################################
+    ##########################################################################################################
+    ##########################################################################################################
+    ##########################################################################################################
+    def HomeStepperAgainstHardStop(self, Direction):
+
+        try:
+
+            ##########################################################################################################
+            Direction = int(Direction)
+            if Direction not in [-1, 1]:
+                print("HomeStepperAgainstHardStop: Direction must be -1 or 1.")
+                return
+            ##########################################################################################################
+
+            self.HomeStepperAgainstHardStop_Direction = Direction
+            self.HomeHard_NeedsToBeSetFlag = 1
+
+        except:
+            exceptions = sys.exc_info()[0]
+            print("HomeStepperAgainstHardStop, exceptions: %s" % exceptions)
+            #traceback.print_exc()
+
+    ##########################################################################################################
+    ##########################################################################################################
+    ##########################################################################################################
+    ##########################################################################################################
+
+    ##########################################################################################################
+    ##########################################################################################################
+    ##########################################################################################################
+    ##########################################################################################################
+    def __HomeStepperAgainstHardStop(self, Direction, PrintInfoForDebuggingFlag=0):
+
+        ##########################################################################################################
+        Direction = int(Direction)
+        if Direction not in [-1, 1]:
+            print("__HomeStepperAgainstHardStop: Direction must be -1 or 1.")
+            return
+        ##########################################################################################################
+
+        self.StallDetectionEnabledFlag = 1
+
+        self.StepperIsHomingAgainstHardStopFlag = 1
+
+        self.SetEngagedState(1)
+
+        if Direction == 1:
+            HomingPosition = self.Stepper_ImmutableLimitsReadFromDevice["Position_Max_PhidgetsUnits"]/2.0
+        else:
+            HomingPosition = self.Stepper_ImmutableLimitsReadFromDevice["Position_Min_PhidgetsUnits"]/2.0
+
+        self.SetPosition(HomingPosition, "PhidgetsUnits", OverrideUserSetLimitsFlag=1)
+
+        if PrintInfoForDebuggingFlag == 1: print("HomeStepperAgainstHardStop event fired, HomingPosition = " + str(HomingPosition))
+
+    ##########################################################################################################
+    ##########################################################################################################
+    ##########################################################################################################
+    ##########################################################################################################
+
+    ##########################################################################################################
     ##########################################################################################################
     ##########################################################################################################
     ##########################################################################################################
@@ -1654,22 +1973,29 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
     ##########################################################################################################
     ##########################################################################################################
 
-    ##########################################################################################################
+    ########################################################################################################## unicorn
     ##########################################################################################################
     ##########################################################################################################
     def __SetZeroPosition(self, PrintInfoForDebuggingFlag = 0):
 
         try:
-            if self.PhidgetsDeviceConnectedFlag == 1:
+            if self.StepperObjectAttachedAndOpenedFlag == 1:
                 
                 self.Stepper_Object.addPositionOffset(-1*self.Stepper_Object.getPosition())
 
-                self.Position_Actual_PhidgetsUnits = self.Stepper_Object.getPosition()
+                time.sleep(0.010)
 
+                self.Position_Actual_PhidgetsUnits = self.Stepper_Object.getPosition()
                 self.Position_Actual_AllUnitsDict = self.ConvertAngleToAllUnits(self.Position_Actual_PhidgetsUnits, "PhidgetsUnits", VelocityFlag=0)
 
+
                 self.Position_ToBeSet_PhidgetsUnits = 0
+                self.Position_ToBeSet_AllUnitsDict = self.ConvertAngleToAllUnits(self.Position_ToBeSet_PhidgetsUnits, "PhidgetsUnits", VelocityFlag=0)
+
+                self.__SetPosition(self.Position_ToBeSet_PhidgetsUnits) #IMMEDIATEACTION, no need to go through the while 1 loop.
                 self.Position_GUIscale_NeedsToBeSetFlag = 1
+
+
 
                 if PrintInfoForDebuggingFlag == 1: print("__SetZeroPosition event fired for self.ZeroPosition_ToBeSet = " + str(self.ZeroPosition_ToBeSet))
 
@@ -1711,7 +2037,7 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
     def __SetEngagedState(self, EngagedState_ToBeSet, PrintInfoForDebuggingFlag = 0):
 
         try:
-            if self.PhidgetsDeviceConnectedFlag == 1:
+            if self.StepperObjectAttachedAndOpenedFlag == 1:
                 EngagedState_ToBeSet_TEMP = int(EngagedState_ToBeSet)
 
                 if EngagedState_ToBeSet_TEMP in [0, 1]:
@@ -1737,7 +2063,7 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
     ##########################################################################################################
     ##########################################################################################################
     ##########################################################################################################
-    def SetPosition(self, Position_ToBeSet, UnitsStr):
+    def SetPosition(self, Position_ToBeSet, UnitsStr, OverrideUserSetLimitsFlag=0):
 
         try:
 
@@ -1748,9 +2074,13 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
 
             Position_ToBeSet_PhidgetsUnits_TEMP = self.ConvertAngleToAllUnits(Position_ToBeSet, UnitsStr, VelocityFlag=0)["PhidgetsUnits"]
 
-            self.Position_ToBeSet_PhidgetsUnits = int(self.LimitNumber_FloatOutputOnly(self.Position_Min_PhidgetsUnits_UserSet, #based on USER limits
-                                                                                             self.Position_Max_PhidgetsUnits_UserSet,
-                                                                                             Position_ToBeSet_PhidgetsUnits_TEMP))
+            if OverrideUserSetLimitsFlag == 0:
+                self.Position_ToBeSet_PhidgetsUnits = int(self.LimitNumber_FloatOutputOnly(self.Position_Min_PhidgetsUnits_UserSet, #based on USER limits
+                                                                                                 self.Position_Max_PhidgetsUnits_UserSet,
+                                                                                                 Position_ToBeSet_PhidgetsUnits_TEMP))
+            else:
+                self.Position_ToBeSet_PhidgetsUnits = Position_ToBeSet_PhidgetsUnits_TEMP
+
             self.Position_NeedsToBeSetFlag = 1
             self.Position_GUIscale_NeedsToBeSetFlag = 1
 
@@ -1769,7 +2099,7 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
     def __SetPosition(self, Position_ToBeSet_PhidgetsUnits, PrintInfoForDebuggingFlag = 0):
 
         try:
-            if self.PhidgetsDeviceConnectedFlag == 1:
+            if self.StepperObjectAttachedAndOpenedFlag == 1:
 
                 Position_ToBeSet_PhidgetsUnits_TEMP = int(self.LimitNumber_FloatOutputOnly(self.Stepper_ImmutableLimitsReadFromDevice["Position_Min_PhidgetsUnits"], #based on DEVICE limits
                                                                                                self.Stepper_ImmutableLimitsReadFromDevice["Position_Max_PhidgetsUnits"],
@@ -1786,7 +2116,7 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
         except:
             exceptions = sys.exc_info()[0]
             print("__SetPosition, exceptions: %s" % exceptions)
-            #traceback.print_exc()
+            traceback.print_exc()
 
     ##########################################################################################################
     ##########################################################################################################
@@ -1820,7 +2150,7 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
     def __SetVelocityLimit(self, VelocityLimit_ToBeSet_PhidgetsUnits, PrintInfoForDebuggingFlag = 0):
 
         try:
-            if self.PhidgetsDeviceConnectedFlag == 1:
+            if self.StepperObjectAttachedAndOpenedFlag == 1:
 
                 self.VelocityLimit_ToBeSet = int(self.LimitNumber_FloatOutputOnly(self.Stepper_ImmutableLimitsReadFromDevice["VelocityLimit_Min_PhidgetsUnits"], #based on DEVICE limits
                                                                                    self.Stepper_ImmutableLimitsReadFromDevice["VelocityLimit_Max_PhidgetsUnits"],
@@ -1869,7 +2199,7 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
     def __SetAcceleration(self, Acceleration_ToBeSet_PhidgetsUnits, PrintInfoForDebuggingFlag = 0):
 
         try:
-            if self.PhidgetsDeviceConnectedFlag == 1:
+            if self.StepperObjectAttachedAndOpenedFlag == 1:
 
                 self.Acceleration_ToBeSet = int(self.LimitNumber_FloatOutputOnly(self.Stepper_ImmutableLimitsReadFromDevice["Acceleration_Min_PhidgetsUnits"], #based on DEVICE limits
                                                                                    self.Stepper_ImmutableLimitsReadFromDevice["Acceleration_Max_PhidgetsUnits"],
@@ -1896,9 +2226,9 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
     def SetCurrentLimit(self, CurrentLimit_ToBeSet_PhidgetsUnits):
 
         try:
-            self.CurrentLimit_ToBeSet_PhidgetsUnits = int(self.LimitNumber_FloatOutputOnly(self.CurrentLimit_Min_PhidgetsUnits_UserSet, #based on USER limits
+            self.CurrentLimit_ToBeSet_PhidgetsUnits = self.LimitNumber_FloatOutputOnly(self.CurrentLimit_Min_PhidgetsUnits_UserSet, #based on USER limits
                                                                                          self.CurrentLimit_Max_PhidgetsUnits_UserSet,
-                                                                                         CurrentLimit_ToBeSet_PhidgetsUnits))
+                                                                                         CurrentLimit_ToBeSet_PhidgetsUnits)
 
             self.CurrentLimit_NeedsToBeSetFlag = 1
             self.CurrentLimit_GUIscale_NeedsToBeSetFlag = 1
@@ -1918,17 +2248,17 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
     def __SetCurrentLimit(self, CurrentLimit_ToBeSet_PhidgetsUnits, PrintInfoForDebuggingFlag = 0):
 
         try:
-            if self.PhidgetsDeviceConnectedFlag == 1:
+            if self.StepperObjectAttachedAndOpenedFlag == 1:
 
-                self.CurrentLimit_ToBeSet = self.LimitNumber_FloatOutputOnly(self.Stepper_ImmutableLimitsReadFromDevice["CurrentLimit_Min_PhidgetsUnits"], #based on DEVICE limits
+                self.CurrentLimit_ToBeSet_PhidgetsUnits = self.LimitNumber_FloatOutputOnly(self.Stepper_ImmutableLimitsReadFromDevice["CurrentLimit_Min_PhidgetsUnits"], #based on DEVICE limits
                                                                                    self.Stepper_ImmutableLimitsReadFromDevice["CurrentLimit_Max_PhidgetsUnits"],
                                                                                    CurrentLimit_ToBeSet_PhidgetsUnits)
 
-                self.Stepper_Object.setCurrentLimit(self.CurrentLimit_ToBeSet)
+                self.Stepper_Object.setCurrentLimit(self.self.CurrentLimit_ToBeSet_PhidgetsUnits)
 
                 self.CurrentLimit_Actual_PhidgetsUnits = self.Stepper_Object.getCurrentLimit()
 
-                if PrintInfoForDebuggingFlag == 1: print("__SetCurrentLimit event fired for self.CurrentLimit_ToBeSet = " + str(self.CurrentLimit_ToBeSet))
+                if PrintInfoForDebuggingFlag == 1: print("__SetCurrentLimit event fired for self.self.CurrentLimit_ToBeSet_PhidgetsUnits = " + str(self.self.CurrentLimit_ToBeSet_PhidgetsUnits))
 
         except:
             exceptions = sys.exc_info()[0]
@@ -1945,9 +2275,9 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
     def SetHoldingCurrentLimit(self, HoldingCurrentLimit_ToBeSet_PhidgetsUnits):
 
         try:
-            self.HoldingCurrentLimit_ToBeSet_PhidgetsUnits = int(self.LimitNumber_FloatOutputOnly(self.HoldingCurrentLimit_Min_PhidgetsUnits_UserSet, #based on USER limits
+            self.HoldingCurrentLimit_ToBeSet_PhidgetsUnits = self.LimitNumber_FloatOutputOnly(self.HoldingCurrentLimit_Min_PhidgetsUnits_UserSet, #based on USER limits
                                                                                                      self.HoldingCurrentLimit_Max_PhidgetsUnits_UserSet,
-                                                                                                     HoldingCurrentLimit_ToBeSet_PhidgetsUnits))
+                                                                                                     HoldingCurrentLimit_ToBeSet_PhidgetsUnits)
 
             self.HoldingCurrentLimit_NeedsToBeSetFlag = 1
             self.HoldingCurrentLimit_GUIscale_NeedsToBeSetFlag = 1
@@ -1967,17 +2297,17 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
     def __SetHoldingCurrentLimit(self, HoldingCurrentLimit_ToBeSet_PhidgetsUnits, PrintInfoForDebuggingFlag = 0):
 
         try:
-            if self.PhidgetsDeviceConnectedFlag == 1:
+            if self.StepperObjectAttachedAndOpenedFlag == 1:
 
-                self.HoldingCurrentLimit_ToBeSet = self.LimitNumber_FloatOutputOnly(self.Stepper_ImmutableLimitsReadFromDevice["HoldingCurrentLimit_Min_PhidgetsUnits"], #based on DEVICE limits
+                self.HoldingCurrentLimit_ToBeSet_PhidgetsUnits = self.LimitNumber_FloatOutputOnly(self.Stepper_ImmutableLimitsReadFromDevice["HoldingCurrentLimit_Min_PhidgetsUnits"], #based on DEVICE limits
                                                                                    self.Stepper_ImmutableLimitsReadFromDevice["HoldingCurrentLimit_Max_PhidgetsUnits"],
                                                                                    HoldingCurrentLimit_ToBeSet_PhidgetsUnits)
 
-                self.Stepper_Object.setHoldingCurrentLimit(self.HoldingCurrentLimit_ToBeSet)
+                self.Stepper_Object.setHoldingCurrentLimit(self.HoldingCurrentLimit_ToBeSet_PhidgetsUnits)
 
                 self.HoldingCurrentLimit_Actual_PhidgetsUnits = self.Stepper_Object.getHoldingCurrentLimit()
 
-                if PrintInfoForDebuggingFlag == 1: print("__SetHoldingCurrentLimit event fired for self.HoldingCurrentLimit_ToBeSet = " + str(self.HoldingCurrentLimit_ToBeSet))
+                if PrintInfoForDebuggingFlag == 1: print("__SetHoldingCurrentLimit event fired for self.HoldingCurrentLimit_ToBeSet_PhidgetsUnits = " + str(self.HoldingCurrentLimit_ToBeSet_PhidgetsUnits))
 
         except:
             exceptions = sys.exc_info()[0]
@@ -2000,19 +2330,33 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
         self.MyPrint_WithoutLogFile("Started MainThread for PhidgetStepperControllerVINT_ReubenPython3Class object.")
         self.MainThread_StillRunningFlag = 1
 
-        self.SetPosition(self.Position_ToBeSet_PhidgetsUnits, "PhidgetsUnits")
+        ##########################################################################################################
+        self.SetPosition(self.Position_ToBeSet_PhidgetsUnits, "PhidgetsUnits", OverrideUserSetLimitsFlag=0)
         self.SetVelocityLimit(self.VelocityLimit_ToBeSet_PhidgetsUnits)
         self.SetAcceleration(self.Acceleration_ToBeSet_PhidgetsUnits)
         self.SetCurrentLimit(self.CurrentLimit_ToBeSet_PhidgetsUnits)
         self.SetHoldingCurrentLimit(self.HoldingCurrentLimit_ToBeSet_PhidgetsUnits)
+        ##########################################################################################################
 
+        ##########################################################################################################
         if self.FailsafeEnabledFlag == 1:
             self.Stepper_Object.enableFailsafe(int(self.FailsafeTime_Milliseconds))
+        ##########################################################################################################
 
+        ##########################################################################################################
         if self.EngageMotorOnAttachFlag == 1:
             self.SetEngagedState(1)
+        ##########################################################################################################
 
+         ##########################################################################################################
+        if self.HomeStepperAgainstHardStopOnStartupFlag == 1:
+            self.HomeStepperAgainstHardStop(self.HomeStepperAgainstHardStop_Direction)
+        ##########################################################################################################
+
+        ##########################################################################################################
         self.StartingTime_CalculatedFromMainThread = self.getPreciseSecondsTimeStampString()
+        ##########################################################################################################
+
         ##########################################################################################################
         ##########################################################################################################
         ##########################################################################################################
@@ -2123,6 +2467,43 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
 
                 ##########################################################################################################
                 ##########################################################################################################
+                if self.DetectedDeviceName.find("4A Stepper Phidget") != -1 or self.DetectedDeviceID == 149:
+                    if self.HomeHard_NeedsToBeSetFlag == 1:
+                        self.__HomeStepperAgainstHardStop(self.HomeStepperAgainstHardStop_Direction)
+                        self.HomeHard_NeedsToBeSetFlag = 0
+                ##########################################################################################################
+                ##########################################################################################################
+
+                ##########################################################################################################
+                ##########################################################################################################
+                self.DetectStallFromMeasuringVoltageSupply()
+
+                ##########################################################################################################
+                if self.StallDetected_LatchingState == 1:
+                    print("STALL DETECTED")
+                    self.__SetEngagedState(0) #IMMEDIATE ACTION, NO LOOPING THROUGH WHILE 1.
+
+                    ##############################################
+                    if self.StepperIsHomingAgainstHardStopFlag == 1:
+                        time.sleep(0.25)
+                        self.SetZeroPosition()
+                        time.sleep(0.010)
+
+                        if self.EngageMotorOnAttachFlag == 1:
+                            self.__SetEngagedState(1) #IMMEDIATE ACTION, NO LOOPING THROUGH WHILE 1.
+
+                        self.StallDetectionEnabledFlag = 0
+                        self.StepperIsHomingAgainstHardStopFlag = 0
+                    ##############################################
+
+                    self.StallDetected_LatchingState = 0
+                ##########################################################################################################
+
+                ##########################################################################################################
+                ##########################################################################################################
+
+                ##########################################################################################################
+                ##########################################################################################################
                 self.MostRecentDataDict["Time"] = self.CurrentTime_CalculatedFromMainThread
 
                 self.MostRecentDataDict["CurrentTime_CalculatedFromMainThread"] = self.CurrentTime_CalculatedFromMainThread
@@ -2131,7 +2512,6 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
                 self.MostRecentDataDict["DataStreamingFrequency_CalculatedFromPositionChangeCallback"] = self.DataStreamingFrequency_CalculatedFromPositionChangeCallback
 
                 self.MostRecentDataDict["Stepper_ImmutableLimitsReadFromDevice"] = self.Stepper_ImmutableLimitsReadFromDevice
-
                 self.MostRecentDataDict["Stepper_ChangeableSettingsReadFromDevice"] = self.Stepper_ChangeableSettingsReadFromDevice
 
                 self.MostRecentDataDict["EngagedState_Actual"] = self.EngagedState_Actual
@@ -2145,6 +2525,21 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
                 self.MostRecentDataDict["Acceleration_Actual_PhidgetsUnits"] = self.Acceleration_Actual_PhidgetsUnits
 
                 self.MostRecentDataDict["MotionIsStoppedFlag_Actual"] = self.MotionIsStoppedFlag_Actual
+
+                self.MostRecentDataDict["VoltageInput_ImmutableLimitsReadFromDevice"] = self.VoltageInput_ImmutableLimitsReadFromDevice
+                self.MostRecentDataDict["VoltageInput_ChangeableSettingsReadFromDevice"] = self.VoltageInput_ChangeableSettingsReadFromDevice
+
+                self.MostRecentDataDict["VoltageInput_Value_Raw"] = self.VoltageInput_Value_Raw
+                self.MostRecentDataDict["VoltageInput_Value_Filtered"] = self.VoltageInput_Value_Filtered
+
+                self.MostRecentDataDict["VoltageInputDerivative_Value_Raw"] = self.VoltageInputDerivative_Value_Raw
+                self.MostRecentDataDict["VoltageInputDerivative_Value_Filtered"] = self.VoltageInputDerivative_Value_Filtered
+
+                self.MostRecentDataDict["StallDetectionThreshold"] = self.StallDetectionThreshold
+                self.MostRecentDataDict["VoltageInput_Value_ExponentialSmoothingFilterLambda"] = self.VoltageInput_Value_ExponentialSmoothingFilterLambda
+                self.MostRecentDataDict["VoltageInputDerivative_Value_ExponentialSmoothingFilterLambda"] = self.VoltageInputDerivative_Value_ExponentialSmoothingFilterLambda
+
+                self.MostRecentDataDict["StallDetectionEnabledFlag"] = self.StallDetectionEnabledFlag
                 ##########################################################################################################
                 ##########################################################################################################
 
@@ -2222,14 +2617,23 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
 
         try:
 
+            ##########################################################################################################
             self.Stepper_Object.close()
+            ##########################################################################################################
 
+            ##########################################################################################################
+            if self.DetectedDeviceName.find("4A Stepper Phidget") != -1 or self.DetectedDeviceID == 149:
+                self.VoltageInput_Object.close()
+            ##########################################################################################################
+
+            ##########################################################################################################
             print("PhidgetStepperControllerVINT_ReubenPython3Class: CloseDevice, event fired!")
+            ##########################################################################################################
 
         except:
             exceptions = sys.exc_info()[0]
             print("PhidgetStepperControllerVINT_ReubenPython3Class: CloseDevice, Exceptions: %s" % exceptions)
-            traceback.print_exc()
+            #traceback.print_exc()
 
     ##########################################################################################################
     ##########################################################################################################
@@ -2241,6 +2645,48 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
         print("Exiting all threads for PhidgetStepperControllerVINT_ReubenPython3Class object")
 
         self.EXIT_PROGRAM_FLAG = 1
+    ##########################################################################################################
+    ##########################################################################################################
+
+    ##########################################################################################################
+    ##########################################################################################################
+    def UpdateStallDetectionThreshold(self, StallDetectionThreshold):
+        try:
+            self.StallDetectionThreshold = float(StallDetectionThreshold)
+
+        except:
+            exceptions = sys.exc_info()[0]
+            print("UpdateStallDetectionThreshold, Exceptions: %s" % exceptions)
+            traceback.print_exc()
+    ##########################################################################################################
+    ##########################################################################################################
+
+    ##########################################################################################################
+    ##########################################################################################################
+    def UpdateVariableFilterSettingsFromExternalProgram(self, VariableNameString, UseMedianFilterFlag, UseExponentialSmoothingFilterFlag, ExponentialSmoothingFilterLambda, PrintInfoForDebuggingFlag=0):
+        try:
+
+            self.LowPassFilterForDictsOfLists_ReubenPython2and3ClassObject.UpdateVariableFilterSettingsFromExternalProgram(VariableNameString, UseMedianFilterFlag, UseExponentialSmoothingFilterFlag, ExponentialSmoothingFilterLambda)
+
+            self.VoltageInput_Value_ExponentialSmoothingFilterLambda = self.LowPassFilterForDictsOfLists_ReubenPython2and3ClassObject.GetMostRecentDataDict()["VoltageInput_Value"]["ExponentialSmoothingFilterLambda"]
+            self.VoltageInputDerivative_Value_ExponentialSmoothingFilterLambda = self.LowPassFilterForDictsOfLists_ReubenPython2and3ClassObject.GetMostRecentDataDict()["VoltageInputDerivative_Value"]["ExponentialSmoothingFilterLambda"]
+
+            ##########################################################################################################
+            if PrintInfoForDebuggingFlag==1:
+                print("UpdateVariableFilterSettingsFromExternalProgram: "
+                      "VariableNameString: " + str(VariableNameString) +
+                      ", UseMedianFilterFlag " + str(UseMedianFilterFlag) +
+                      ", UseExponentialSmoothingFilterFlag: " + str(UseExponentialSmoothingFilterFlag) +
+                      ", ExponentialSmoothingFilterLambda: " + str(ExponentialSmoothingFilterLambda))
+
+                print("UpdateVariableFilterSettingsFromExternalProgram: self.VoltageInput_Value_ExponentialSmoothingFilterLambda: " + str(self.VoltageInput_Value_ExponentialSmoothingFilterLambda))
+                print("UpdateVariableFilterSettingsFromExternalProgram: self.VoltageInputDerivative_ExponentialSmoothingFilterLambda: " + str(self.VoltageInputDerivative_Value_ExponentialSmoothingFilterLambda))
+            ##########################################################################################################
+
+        except:
+            exceptions = sys.exc_info()[0]
+            print("UpdateVariableFilterSettingsFromExternalProgram, Exceptions: %s" % exceptions)
+            traceback.print_exc()
     ##########################################################################################################
     ##########################################################################################################
 
@@ -2320,15 +2766,31 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
 
         #################################################
         #################################################
-        self.EngagedState_Button = Button(self.myFrame, text="Engaged", state="normal", width=20, command=lambda: self.EngagedState_ButtonResponse())
-        self.EngagedState_Button.grid(row=1, column=0, padx=1, pady=1, columnspan=1, rowspan=1)
+        #################################################
+        self.AllButtonsFrame = Frame(self.myFrame)
+        self.AllButtonsFrame.grid(row=0, column=1, padx=1, pady=1, columnspan=1, rowspan=1, sticky="W")
+        #################################################
+        #################################################
+        #################################################
+
+        #################################################
+        #################################################
+        self.EngagedState_Button = Button(self.AllButtonsFrame, text="Engaged", state="normal", width=20, command=lambda: self.EngagedState_ButtonResponse())
+        self.EngagedState_Button.grid(row=0, column=0, padx=1, pady=1, columnspan=1, rowspan=1)
         #################################################
         #################################################
         
         #################################################
         #################################################
-        self.ZeroPosition_Button = Button(self.myFrame, text="ZeroPos", state="normal", width=20, command=lambda: self.ZeroPosition_ButtonResponse())
-        self.ZeroPosition_Button.grid(row=1, column=1, padx=1, pady=1, columnspan=1, rowspan=1)
+        self.ZeroPosition_Button = Button(self.AllButtonsFrame, text="ZeroPos", state="normal", width=20, command=lambda: self.ZeroPosition_ButtonResponse())
+        self.ZeroPosition_Button.grid(row=1, column=0, padx=1, pady=1, columnspan=1, rowspan=1)
+        #################################################
+        #################################################
+        
+        #################################################
+        #################################################
+        self.HomeHard_Button = Button(self.AllButtonsFrame, text="HomeHard", state="normal", width=20, command=lambda: self.HomeHard_ButtonResponse())
+        self.HomeHard_Button.grid(row=2, column=0, padx=1, pady=1, columnspan=1, rowspan=1)
         #################################################
         #################################################
 
@@ -2345,7 +2807,7 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
         #################################################
         #################################################
         self.AllScalesFrame = Frame(self.myFrame)
-        self.AllScalesFrame.grid(row=3, column=0, padx=1, pady=1, columnspan=1, rowspan=1, sticky="W")
+        self.AllScalesFrame.grid(row=0, column=2, padx=1, pady=1, columnspan=1, rowspan=1, sticky="W")
         #################################################
         #################################################
         #################################################
@@ -2462,7 +2924,7 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
         #################################################
         #################################################
         self.HoldingCurrentLimit_ToBeSet_PhidgetsUnits_ScaleLabel = Label(self.AllScalesFrame, text="HoldingCurrentLimit", width=20)
-        self.HoldingCurrentLimit_ToBeSet_PhidgetsUnits_ScaleLabel.grid(row=3, column=0, padx=1, pady=1, columnspan=1, rowspan=1)
+        self.HoldingCurrentLimit_ToBeSet_PhidgetsUnits_ScaleLabel.grid(row=4, column=0, padx=1, pady=1, columnspan=1, rowspan=1)
 
         self.HoldingCurrentLimit_ToBeSet_PhidgetsUnits_ScaleValue = DoubleVar()
         self.HoldingCurrentLimit_ToBeSet_PhidgetsUnits_Scale = Scale(self.AllScalesFrame, \
@@ -2480,7 +2942,7 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
         self.HoldingCurrentLimit_ToBeSet_PhidgetsUnits_Scale.bind('<B1-Motion>', lambda event, name="HoldingCurrentLimit": self.HoldingCurrentLimit_ToBeSet_PhidgetsUnits_ScaleResponse(event, name))
         self.HoldingCurrentLimit_ToBeSet_PhidgetsUnits_Scale.bind('<ButtonRelease-1>', lambda event, name="HoldingCurrentLimit": self.HoldingCurrentLimit_ToBeSet_PhidgetsUnits_ScaleResponse(event, name)) #Use both '<Button-1>' or '<ButtonRelease-1>'
         self.HoldingCurrentLimit_ToBeSet_PhidgetsUnits_Scale.set(self.HoldingCurrentLimit_ToBeSet_PhidgetsUnits)
-        self.HoldingCurrentLimit_ToBeSet_PhidgetsUnits_Scale.grid(row=3, column=1, padx=1, pady=1, columnspan=2, rowspan=1)
+        self.HoldingCurrentLimit_ToBeSet_PhidgetsUnits_Scale.grid(row=4, column=1, padx=1, pady=1, columnspan=2, rowspan=1)
         #################################################
         #################################################
         #################################################
@@ -2578,6 +3040,16 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
         self.ZeroPosition_NeedsToBeSetFlag = 1
 
         #print("ZeroPosition_Button_Response: Event fired!")
+    ##########################################################################################################
+    ##########################################################################################################
+
+    ##########################################################################################################
+    ##########################################################################################################
+    def HomeHard_ButtonResponse(self):
+
+        self.HomeHard_NeedsToBeSetFlag = 1
+
+        #print("HomeHard_Button_Response: Event fired!")
     ##########################################################################################################
     ##########################################################################################################
 

@@ -6,7 +6,7 @@ reuben.brewer@gmail.com
 www.reubotics.com
 
 Apache 2 License
-Software Revision C, 07/29/2025
+Software Revision D, 08/01/2025
 
 Verified working on: Python 3.11/3.12 for Windows 10, 11 64-bit.
 '''
@@ -14,8 +14,9 @@ Verified working on: Python 3.11/3.12 for Windows 10, 11 64-bit.
 __author__ = 'reuben.brewer'
 
 ##########################################
-from PhidgetStepperControllerVINT_ReubenPython3Class import *
+from EntryListWithBlinking_ReubenPython2and3Class import *
 from MyPlotterPureTkinterStandAloneProcess_ReubenPython2and3Class import *
+from PhidgetStepperControllerVINT_ReubenPython3Class import *
 ##########################################
 
 ##########################################
@@ -375,6 +376,9 @@ def GUI_update_clock():
     global DataStreamingFrequency_CalculatedFromGUIthread
     global DataStreamingDeltaT_CalculatedFromGUIthread
 
+    global EntryListWithBlinking_Object
+    global EntryListWithBlinking_OPEN_FLAG
+
     global PhidgetStepperControllerVINT_Object
     global PhidgetStepperControllerVINT_OPEN_FLAG
     global SHOW_IN_GUI_PhidgetStepperControllerVINT_FLAG
@@ -399,6 +403,11 @@ def GUI_update_clock():
 
                 #########################################################
                 PhidgetStepperControllerVINT_MostRecentDict_Label["text"] = ConvertDictToProperlyFormattedStringForPrinting(PhidgetStepperControllerVINT_MostRecentDict, NumberOfDecimalsPlaceToUse=3, NumberOfEntriesPerLine=3, NumberOfTabsBetweenItems=1)
+                #########################################################
+
+                #########################################################
+                if EntryListWithBlinking_OPEN_FLAG == 1:
+                    EntryListWithBlinking_Object.GUI_update_clock()
                 #########################################################
 
                 #########################################################
@@ -616,6 +625,9 @@ if __name__ == '__main__':
     global USE_TABS_IN_GUI_FLAG
     USE_TABS_IN_GUI_FLAG = 1
 
+    global USE_EntryListWithBlinking_FLAG
+    USE_EntryListWithBlinking_FLAG = 1
+
     global USE_PhidgetStepperControllerVINT_FLAG
     USE_PhidgetStepperControllerVINT_FLAG = 1
 
@@ -639,6 +651,20 @@ if __name__ == '__main__':
 
     #################################################
     #################################################
+    global GUI_ROW_EntryListWithBlinking
+    global GUI_COLUMN_EntryListWithBlinking
+    global GUI_PADX_EntryListWithBlinking
+    global GUI_PADY_EntryListWithBlinking
+    global GUI_ROWSPAN_EntryListWithBlinking
+    global GUI_COLUMNSPAN_EntryListWithBlinking
+    GUI_ROW_EntryListWithBlinking = 2
+
+    GUI_COLUMN_EntryListWithBlinking = 0
+    GUI_PADX_EntryListWithBlinking = 1
+    GUI_PADY_EntryListWithBlinking = 1
+    GUI_ROWSPAN_EntryListWithBlinking = 1
+    GUI_COLUMNSPAN_EntryListWithBlinking = 1
+
     global GUI_ROW_PhidgetStepperControllerVINT
     global GUI_COLUMN_PhidgetStepperControllerVINT
     global GUI_PADX_PhidgetStepperControllerVINT
@@ -731,10 +757,41 @@ if __name__ == '__main__':
 
     #################################################
     #################################################
+    global EntryListWithBlinking_Object
+
+    global EntryListWithBlinking_OPEN_FLAG
+    EntryListWithBlinking_OPEN_FLAG = -1
+
+    global EntryListWithBlinking_MostRecentDict
+    EntryListWithBlinking_MostRecentDict = dict()
+
+    global EntryListWithBlinking_MostRecentDict_DataUpdateNumber
+    EntryListWithBlinking_MostRecentDict_DataUpdateNumber = 0
+
+    global EntryListWithBlinking_MostRecentDict_DataUpdateNumber_last
+    EntryListWithBlinking_MostRecentDict_DataUpdateNumber_last = -1
+
+    EntryWidth = 10
+    LabelWidth = 80
+    FontSize = 8
+    #################################################
+    #################################################
+
+    #################################################
+    #################################################
     global PhidgetStepperControllerVINT_Object
 
     global PhidgetStepperControllerVINT_OPEN_FLAG
     PhidgetStepperControllerVINT_OPEN_FLAG = 0
+
+    global PhidgetStepperControllerVINT_VoltageInput_Value_ExponentialSmoothingFilterLambda
+    PhidgetStepperControllerVINT_VoltageInput_Value_ExponentialSmoothingFilterLambda = 0.7
+
+    global PhidgetStepperControllerVINT_VoltageInputDerivative_Value_ExponentialSmoothingFilterLambda
+    PhidgetStepperControllerVINT_VoltageInputDerivative_Value_ExponentialSmoothingFilterLambda = 0.8
+
+    global PhidgetStepperControllerVINT_StallDetectionThreshold
+    PhidgetStepperControllerVINT_StallDetectionThreshold = 0.25
 
     global PhidgetStepperControllerVINT_MostRecentDict
     PhidgetStepperControllerVINT_MostRecentDict = dict()
@@ -742,17 +799,29 @@ if __name__ == '__main__':
     global PhidgetStepperControllerVINT_MostRecentDict_Time
     PhidgetStepperControllerVINT_MostRecentDict_Time = 0.0
 
-    global PhidgetStepperControllerVINT_MostRecentDict_Position_Actual_Position_ToBeSet_AllUnitsDict
-    PhidgetStepperControllerVINT_MostRecentDict_Position_Actual_Position_ToBeSet_AllUnitsDict = dict([("PhidgetsUnits", 0.0),
+    global PhidgetStepperControllerVINT_MostRecentDict_Position_ToBeSet_AllUnitsDict
+    PhidgetStepperControllerVINT_MostRecentDict_Position_ToBeSet_AllUnitsDict = dict([("PhidgetsUnits", 0.0),
                                                                                                     ("Deg", 0.0),
                                                                                                     ("Rad", 0.0),
                                                                                                     ("Rev", 0.0)])
 
-    global PhidgetStepperControllerVINT_MostRecentDict_Position_Actual_Position_Actual_AllUnitsDict
-    PhidgetStepperControllerVINT_MostRecentDict_Position_Actual_Position_Actual_AllUnitsDict = dict([("PhidgetsUnits", 0.0),
+    global PhidgetStepperControllerVINT_MostRecentDict_Position_Actual_AllUnitsDict
+    PhidgetStepperControllerVINT_MostRecentDict_Position_Actual_AllUnitsDict = dict([("PhidgetsUnits", 0.0),
                                                                                                     ("Deg", 0.0),
                                                                                                     ("Rad", 0.0),
                                                                                                     ("Rev", 0.0)])
+
+    global PhidgetStepperControllerVINT_MostRecentDict_VoltageInput_Value_Raw
+    PhidgetStepperControllerVINT_MostRecentDict_VoltageInput_Value_Raw = 0.0
+
+    global PhidgetStepperControllerVINT_MostRecentDict_VoltageInput_Value_Filtered
+    PhidgetStepperControllerVINT_MostRecentDict_VoltageInput_Value_Filtered = 0.0
+
+    global PhidgetStepperControllerVINT_MostRecentDict_VoltageInputDerivative_Value_Raw
+    PhidgetStepperControllerVINT_MostRecentDict_VoltageInputDerivative_Value_Raw = 0.0
+
+    global PhidgetStepperControllerVINT_MostRecentDict_VoltageInputDerivative_Value_Filtered
+    PhidgetStepperControllerVINT_MostRecentDict_VoltageInputDerivative_Value_Filtered = 0.0
 
     global PhidgetStepperControllerVINT_ZeroPosition_EventNeedsToBeFiredFlag
     PhidgetStepperControllerVINT_ZeroPosition_EventNeedsToBeFiredFlag = 0
@@ -804,6 +873,58 @@ if __name__ == '__main__':
 
     #################################################
     #################################################
+    global EntryListWithBlinking_Object_GUIparametersDict
+    EntryListWithBlinking_Object_GUIparametersDict = dict([("root", Tab_MainControls),
+                                                                                ("UseBorderAroundThisGuiObjectFlag", 0),
+                                                                                ("GUI_ROW", GUI_ROW_EntryListWithBlinking),
+                                                                                ("GUI_COLUMN", GUI_COLUMN_EntryListWithBlinking),
+                                                                                ("GUI_PADX", GUI_PADX_EntryListWithBlinking),
+                                                                                ("GUI_PADY", GUI_PADY_EntryListWithBlinking),
+                                                                                ("GUI_ROWSPAN", GUI_ROWSPAN_EntryListWithBlinking),
+                                                                                ("GUI_COLUMNSPAN", GUI_COLUMNSPAN_EntryListWithBlinking)])
+
+    global EntryListWithBlinking_Variables_ListOfDicts
+    EntryListWithBlinking_Variables_ListOfDicts = [dict([("Name", "PhidgetStepperControllerVINT_StallDetectionThreshold"),("Type", "float"),("StartingVal", PhidgetStepperControllerVINT_StallDetectionThreshold),("MinVal", 0.0),("MaxVal", 1000.0),("EntryBlinkEnabled", 0),("EntryWidth", EntryWidth),("LabelWidth", LabelWidth),("FontSize", FontSize)]),
+                                                   dict([("Name", "PhidgetStepperControllerVINT_VoltageInput_Value_ExponentialSmoothingFilterLambda"),("Type", "float"),("StartingVal", PhidgetStepperControllerVINT_VoltageInput_Value_ExponentialSmoothingFilterLambda),("MinVal", 0.0),("MaxVal", 1.0),("EntryBlinkEnabled", 0),("EntryWidth", EntryWidth),("LabelWidth", LabelWidth),("FontSize", FontSize)]),
+                                                   dict([("Name", "PhidgetStepperControllerVINT_VoltageInputDerivative_Value_ExponentialSmoothingFilterLambda"),("Type", "float"),("StartingVal", PhidgetStepperControllerVINT_VoltageInputDerivative_Value_ExponentialSmoothingFilterLambda),("MinVal", 0.0),("MaxVal", 1.0),("EntryBlinkEnabled", 0),("EntryWidth", EntryWidth),("LabelWidth", LabelWidth),("FontSize", FontSize)])]
+
+    global EntryListWithBlinking_Object_SetupDict
+    EntryListWithBlinking_Object_SetupDict = dict([("GUIparametersDict", EntryListWithBlinking_Object_GUIparametersDict),
+                                                                          ("EntryListWithBlinking_Variables_ListOfDicts", EntryListWithBlinking_Variables_ListOfDicts),
+                                                                          ("DebugByPrintingVariablesFlag", 0),
+                                                                          ("LoseFocusIfMouseLeavesEntryFlag", 0)])
+    if USE_EntryListWithBlinking_FLAG == 1 and EXIT_PROGRAM_FLAG == 0:
+        try:
+            EntryListWithBlinking_Object = EntryListWithBlinking_ReubenPython2and3Class(EntryListWithBlinking_Object_SetupDict)
+            EntryListWithBlinking_OPEN_FLAG = EntryListWithBlinking_Object.OBJECT_CREATED_SUCCESSFULLY_FLAG
+
+        except:
+            exceptions = sys.exc_info()[0]
+            print("EntryListWithBlinking_Object __init__: Exceptions: %s" % exceptions)
+            traceback.print_exc()
+    #################################################
+    #################################################
+
+    #################################################
+    #################################################
+    if USE_EntryListWithBlinking_FLAG == 1:
+        if EXIT_PROGRAM_FLAG == 0:
+            if EntryListWithBlinking_OPEN_FLAG != 1:
+                print("Failed to open EntryListWithBlinking_ReubenPython2and3Class.")
+                ExitProgram_Callback()
+    #################################################
+    #################################################
+
+    ##########################################################################################################
+    ##########################################################################################################
+    ##########################################################################################################
+
+    ##########################################################################################################
+    ##########################################################################################################
+    ##########################################################################################################
+
+    #################################################
+    #################################################
     global PhidgetStepperControllerVINT_GUIparametersDict
     PhidgetStepperControllerVINT_GUIparametersDict = dict([("USE_GUI_FLAG", USE_GUI_FLAG and SHOW_IN_GUI_PhidgetStepperControllerVINT_FLAG),
                                                             ("root", Tab_PhidgetStepperControllerVINT),
@@ -818,8 +939,8 @@ if __name__ == '__main__':
                                                             ("GUI_COLUMNSPAN", GUI_COLUMNSPAN_PhidgetStepperControllerVINT)])
 
     global PhidgetStepperControllerVINT_MinAndMaxLimitsUserSetDict
-    PhidgetStepperControllerVINT_MinAndMaxLimitsUserSetDict = dict([("Position_Min_PhidgetsUnits_UserSet", -4444),
-                                                                    ("Position_Max_PhidgetsUnits_UserSet", 4444)])
+    PhidgetStepperControllerVINT_MinAndMaxLimitsUserSetDict = dict([("Position_Min_PhidgetsUnits_UserSet", -44444),
+                                                                    ("Position_Max_PhidgetsUnits_UserSet", 44444)])
 
     '''
     ("VelocityLimit_Min_PhidgetsUnits_UserSet", 200),
@@ -836,22 +957,28 @@ if __name__ == '__main__':
     PhidgetStepperControllerVINT_InitialSettingsDict = dict([("Position_ToBeSet_PhidgetsUnits", 0),
                                                             ("VelocityLimit_ToBeSet_PhidgetsUnits", 10000),
                                                             ("Acceleration_ToBeSet_PhidgetsUnits", 20000),
-                                                            ("CurrentLimit_ToBeSet_PhidgetsUnits", 8.0),
-                                                            ("HoldingCurrentLimit_ToBeSet_PhidgetsUnits", 1.0)])
+                                                            ("CurrentLimit_ToBeSet_PhidgetsUnits", 0.5),
+                                                            ("HoldingCurrentLimit_ToBeSet_PhidgetsUnits", 0.5)])
 
     global PhidgetStepperControllerVINT_SetupDict
     PhidgetStepperControllerVINT_SetupDict = dict([("GUIparametersDict", PhidgetStepperControllerVINT_GUIparametersDict),
                                                    ("UsePhidgetsLoggingInternalToThisClassObjectFlag", 1),
-                                                   ("VINT_DesiredSerialNumber", 765592),  # CHANGE THIS TO MATCH YOUR UNIQUE VINT 723183, 765592
-                                                   ("VINT_DesiredPortNumber", 1),  # CHANGE THIS TO MATCH YOUR UNIQUE VINT
+                                                   ("VINT_DesiredSerialNumber", -1),  # CHANGE THIS TO MATCH YOUR UNIQUE VINT 723183, 765592
+                                                   ("VINT_DesiredPortNumber", 5),  # CHANGE THIS TO MATCH YOUR UNIQUE VINT
                                                    ("DesiredDeviceID", -1), #118, 149
                                                    ("WaitForAttached_TimeoutDuration_Milliseconds", 1000),
                                                    ("MainThread_TimeToSleepEachLoop", 0.008),
                                                    ("NameToDisplay_UserSet", "PhidgetStepperControllerVINT"),
+                                                   ("EngageMotorOnAttachFlag", 1),
                                                    ("FailsafeTime_Milliseconds", 555),
-                                                   ("DegPerStep", 0.9),
+                                                   ("DegPerStep", 1.8),
                                                    ("MinAndMaxLimitsUserSetDict", PhidgetStepperControllerVINT_MinAndMaxLimitsUserSetDict),
-                                                   ("InitialSettingsDict", PhidgetStepperControllerVINT_InitialSettingsDict)])
+                                                   ("InitialSettingsDict", PhidgetStepperControllerVINT_InitialSettingsDict),
+                                                   ("VoltageInput_Value_ExponentialSmoothingFilterLambda", PhidgetStepperControllerVINT_VoltageInput_Value_ExponentialSmoothingFilterLambda),
+                                                   ("VoltageInputDerivative_Value_ExponentialSmoothingFilterLambda", PhidgetStepperControllerVINT_VoltageInputDerivative_Value_ExponentialSmoothingFilterLambda),
+                                                   ("StallDetectionThreshold", PhidgetStepperControllerVINT_StallDetectionThreshold),
+                                                   ("HomeStepperAgainstHardStop_Direction", -1),
+                                                   ("HomeStepperAgainstHardStopOnStartupFlag", 1)])
 
     if USE_PhidgetStepperControllerVINT_FLAG == 1 and EXIT_PROGRAM_FLAG == 0:
         try:
@@ -982,6 +1109,14 @@ if __name__ == '__main__':
     ##########################################################################################################
     ##########################################################################################################
     ##########################################################################################################
+    #PhidgetStepperControllerVINT_Object.HomeStepperAgainstHardStop(-1)
+    ##########################################################################################################
+    ##########################################################################################################
+    ##########################################################################################################
+
+    ##########################################################################################################
+    ##########################################################################################################
+    ##########################################################################################################
     if EXIT_PROGRAM_FLAG == 0:
         print("Starting main loop 'test_program_for_PhidgetStepperControllerVINT_ReubenPython3Class.")
         StartingTime_CalculatedFromMainThread = getPreciseSecondsTimeStampString()
@@ -1005,6 +1140,57 @@ if __name__ == '__main__':
         ###################################################
         ###################################################
 
+        ###################################################
+        ###################################################
+        ###################################################
+
+        ################################################### GET's
+        ###################################################
+        if EntryListWithBlinking_OPEN_FLAG == 1:
+
+            EntryListWithBlinking_MostRecentDict = EntryListWithBlinking_Object.GetMostRecentDataDict()
+
+            if "DataUpdateNumber" in EntryListWithBlinking_MostRecentDict and EntryListWithBlinking_MostRecentDict["DataUpdateNumber"] != EntryListWithBlinking_MostRecentDict_DataUpdateNumber_last:
+                EntryListWithBlinking_MostRecentDict_DataUpdateNumber = EntryListWithBlinking_MostRecentDict["DataUpdateNumber"]
+                #print("DataUpdateNumber = " + str(EntryListWithBlinking_MostRecentDict_DataUpdateNumber) + ", EntryListWithBlinking_MostRecentDict: " + str(EntryListWithBlinking_MostRecentDict))
+
+                ###################################################
+                if EntryListWithBlinking_MostRecentDict_DataUpdateNumber > 1:
+
+                    PhidgetStepperControllerVINT_StallDetectionThreshold = float(EntryListWithBlinking_MostRecentDict["PhidgetStepperControllerVINT_StallDetectionThreshold"])
+                    PhidgetStepperControllerVINT_VoltageInput_Value_ExponentialSmoothingFilterLambda = float(EntryListWithBlinking_MostRecentDict["PhidgetStepperControllerVINT_VoltageInput_Value_ExponentialSmoothingFilterLambda"])
+                    PhidgetStepperControllerVINT_VoltageInputDerivative_Value_ExponentialSmoothingFilterLambda = float(EntryListWithBlinking_MostRecentDict["PhidgetStepperControllerVINT_VoltageInputDerivative_Value_ExponentialSmoothingFilterLambda"])
+
+                    if PhidgetStepperControllerVINT_OPEN_FLAG == 1:
+
+                        PhidgetStepperControllerVINT_Object.UpdateStallDetectionThreshold(PhidgetStepperControllerVINT_StallDetectionThreshold)
+
+                        PhidgetStepperControllerVINT_Object.UpdateVariableFilterSettingsFromExternalProgram("VoltageInput_Value",
+                                                                                                            UseMedianFilterFlag=1,
+                                                                                                            UseExponentialSmoothingFilterFlag=1,
+                                                                                                            ExponentialSmoothingFilterLambda=PhidgetStepperControllerVINT_VoltageInput_Value_ExponentialSmoothingFilterLambda,
+                                                                                                            PrintInfoForDebuggingFlag=0)
+
+                        PhidgetStepperControllerVINT_Object.UpdateVariableFilterSettingsFromExternalProgram("VoltageInputDerivative_Value",
+                                                                                                             UseMedianFilterFlag=1,
+                                                                                                             UseExponentialSmoothingFilterFlag=1,
+                                                                                                             ExponentialSmoothingFilterLambda=PhidgetStepperControllerVINT_VoltageInputDerivative_Value_ExponentialSmoothingFilterLambda,
+                                                                                                             PrintInfoForDebuggingFlag=0)
+                ###################################################
+
+        ###################################################
+        ###################################################
+
+        ###################################################
+        ###################################################
+        EntryListWithBlinking_MostRecentDict_DataUpdateNumber_last = EntryListWithBlinking_MostRecentDict_DataUpdateNumber
+        ###################################################
+        ###################################################
+
+        ###################################################
+        ###################################################
+        ###################################################
+
         ################################################### GET's
         ###################################################
         ###################################################
@@ -1015,9 +1201,14 @@ if __name__ == '__main__':
 
             if "Time" in PhidgetStepperControllerVINT_MostRecentDict:
                 PhidgetStepperControllerVINT_MostRecentDict_Time = PhidgetStepperControllerVINT_MostRecentDict["Time"]
-                PhidgetStepperControllerVINT_MostRecentDict_Position_Actual_Position_ToBeSet_AllUnitsDict = PhidgetStepperControllerVINT_MostRecentDict["Position_ToBeSet_AllUnitsDict"]
-                PhidgetStepperControllerVINT_MostRecentDict_Position_Actual_Position_Actual_AllUnitsDict = PhidgetStepperControllerVINT_MostRecentDict["Position_Actual_AllUnitsDict"]
+                PhidgetStepperControllerVINT_MostRecentDict_Position_ToBeSet_AllUnitsDict = PhidgetStepperControllerVINT_MostRecentDict["Position_ToBeSet_AllUnitsDict"]
+                PhidgetStepperControllerVINT_MostRecentDict_Position_Actual_AllUnitsDict = PhidgetStepperControllerVINT_MostRecentDict["Position_Actual_AllUnitsDict"]
 
+                PhidgetStepperControllerVINT_MostRecentDict_VoltageInput_Value_Raw = PhidgetStepperControllerVINT_MostRecentDict["VoltageInput_Value_Raw"]
+                PhidgetStepperControllerVINT_MostRecentDict_VoltageInput_Value_Filtered = PhidgetStepperControllerVINT_MostRecentDict["VoltageInput_Value_Filtered"]
+
+                PhidgetStepperControllerVINT_MostRecentDict_VoltageInputDerivative_Value_Raw = PhidgetStepperControllerVINT_MostRecentDict["VoltageInputDerivative_Value_Filtered"]
+                PhidgetStepperControllerVINT_MostRecentDict_VoltageInputDerivative_Value_Filtered = PhidgetStepperControllerVINT_MostRecentDict["VoltageInputDerivative_Value_Filtered"]
         ###################################################
         ###################################################
         ###################################################
@@ -1077,15 +1268,28 @@ if __name__ == '__main__':
                     if MyPlotterPureTkinterStandAloneProcess0_MostRecentDict_StandAlonePlottingProcess_ReadyForWritingFlag == 1:
                         if CurrentTime_CalculatedFromMainThread - LastTime_CalculatedFromMainThread_MyPlotterPureTkinterStandAloneProcess0 >= 0.030:
 
+                            '''
                             ####################################################
                             ListOfValuesToPlot = []
                             ListOfCurveNamesToPlot = []
 
                             if USE_PeriodicInput_FLAG == 1:
-                                ListOfValuesToPlot.append(PhidgetStepperControllerVINT_MostRecentDict_Position_Actual_Position_ToBeSet_AllUnitsDict["Deg"])
+                                ListOfValuesToPlot.append(PhidgetStepperControllerVINT_MostRecentDict_Position_ToBeSet_AllUnitsDict["Deg"])
                                 ListOfCurveNamesToPlot.append(MyPlotterPureTkinterStandAloneProcess0_NameList[0])
 
-                            ListOfValuesToPlot.append(PhidgetStepperControllerVINT_MostRecentDict_Position_Actual_Position_Actual_AllUnitsDict["Deg"])
+                            ListOfValuesToPlot.append(PhidgetStepperControllerVINT_MostRecentDict_Position_Actual_AllUnitsDict["Deg"])
+                            ListOfCurveNamesToPlot.append(MyPlotterPureTkinterStandAloneProcess0_NameList[1])
+                            ####################################################
+                            '''
+
+                            ####################################################
+                            ListOfValuesToPlot = []
+                            ListOfCurveNamesToPlot = []
+                            #ListOfValuesToPlot.append(PhidgetStepperControllerVINT_MostRecentDict_VoltageInput_Value_Raw)
+                            ListOfValuesToPlot.append(PhidgetStepperControllerVINT_MostRecentDict_VoltageInput_Value_Filtered)
+                            #ListOfValuesToPlot.append(PhidgetStepperControllerVINT_MostRecentDict_VoltageInput_Value_MeanOfHistoryList)
+                            ListOfValuesToPlot.append(PhidgetStepperControllerVINT_MostRecentDict_VoltageInputDerivative_Value_Filtered)
+                            ListOfCurveNamesToPlot.append(MyPlotterPureTkinterStandAloneProcess0_NameList[0])
                             ListOfCurveNamesToPlot.append(MyPlotterPureTkinterStandAloneProcess0_NameList[1])
                             ####################################################
 
@@ -1122,6 +1326,11 @@ if __name__ == '__main__':
     ##########################################################################################################
     ##########################################################################################################
     print("Exiting main program 'test_program_for_PhidgetStepperControllerVINT_ReubenPython3Class.")
+
+    #################################################
+    if EntryListWithBlinking_OPEN_FLAG == 1:
+        EntryListWithBlinking_Object.ExitProgram_Callback()
+    #################################################
 
     #################################################
     if PhidgetStepperControllerVINT_OPEN_FLAG == 1:
