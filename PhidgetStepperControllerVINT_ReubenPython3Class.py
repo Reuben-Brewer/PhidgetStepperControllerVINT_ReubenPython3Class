@@ -6,7 +6,7 @@ reuben.brewer@gmail.com
 www.reubotics.com
 
 Apache 2 License
-Software Revision D, 08/01/2025
+Software Revision E, 08/18/2025
 
 Verified working on: Python 3.11/3.12 for Windows 10, 11 64-bit.
 '''
@@ -635,16 +635,6 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
         ##########################################################################################################
         ##########################################################################################################
         ##########################################################################################################
-        self.CTRLc_RegisterHandlerFunction()
-        ##########################################################################################################
-        ##########################################################################################################
-        ##########################################################################################################
-        ##########################################################################################################
-
-        ##########################################################################################################
-        ##########################################################################################################
-        ##########################################################################################################
-        ##########################################################################################################
         
         #########################################################
         #########################################################
@@ -654,6 +644,7 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
 
         except PhidgetException as e:
             print("PhidgetStepperControllerVINT_ReubenPython3Class __init__: Failed to create main motor object, exception:  %i: %s" % (e.code, e.details))
+            return
         #########################################################
         #########################################################
 
@@ -666,6 +657,7 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
 
         except PhidgetException as e:
             print("PhidgetStepperControllerVINT_ReubenPython3Class __init__: Failed to call 'setDeviceSerialNumber()', exception:  %i: %s" % (e.code, e.details))
+            return
         #########################################################
         #########################################################
 
@@ -677,6 +669,7 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
 
         except PhidgetException as e:
             print("PhidgetStepperControllerVINT_ReubenPython3Class __init__: Failed to call 'setHubPort()', exception:  %i: %s" % (e.code, e.details))
+            return
         #########################################################
         #########################################################
 
@@ -707,9 +700,11 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
             try:
                 self.Stepper_Object.close()
                 print("PhidgetStepperControllerVINT_ReubenPython3Class __init__: Closed the Stepper object.")
+                return
 
             except PhidgetException as e:
                 print("PhidgetStepperControllerVINT_ReubenPython3Class __init__: Failed to call 'close()', exception:  %i: %s" % (e.code, e.details))
+                return
             #########################################################
 
         #########################################################
@@ -749,6 +744,7 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
 
             except PhidgetException as e:
                 print("Failed to call 'getDeviceName', Phidget Exception %i: %s" % (e.code, e.details))
+                return
             #########################################################
             #########################################################
 
@@ -760,6 +756,7 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
 
             except PhidgetException as e:
                 print("Failed to call 'getDeviceSerialNumber', Phidget Exception %i: %s" % (e.code, e.details))
+                return
             #########################################################
             #########################################################
 
@@ -771,6 +768,7 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
 
             except PhidgetException as e:
                 print("Failed to call 'getDeviceID', Phidget Exception %i: %s" % (e.code, e.details))
+                return
             #########################################################
             #########################################################
 
@@ -782,6 +780,7 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
 
             except PhidgetException as e:
                 print("Failed to call 'getDeviceVersion', Phidget Exception %i: %s" % (e.code, e.details))
+                return
             #########################################################
             #########################################################
 
@@ -793,6 +792,7 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
 
             except PhidgetException as e:
                 print("Failed to call 'getLibraryVersion', Phidget Exception %i: %s" % (e.code, e.details))
+                return
             #########################################################
             #########################################################
 
@@ -836,6 +836,7 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
 
                 except PhidgetException as e:
                     print("Failed to call open VoltageInput_Object, Phidget Exception %i: %s" % (e.code, e.details))
+                    return
             ##########################################################################################################
             ##########################################################################################################
             ##########################################################################################################
@@ -1116,6 +1117,16 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
         ##########################################################################################################
         if self.USE_GUI_FLAG == 1:
             self.StartGUI(self.root)
+        ##########################################################################################################
+        ##########################################################################################################
+        ##########################################################################################################
+        ##########################################################################################################
+
+        ##########################################################################################################
+        ##########################################################################################################
+        ##########################################################################################################
+        ##########################################################################################################
+        self.CTRLc_RegisterHandlerFunction()
         ##########################################################################################################
         ##########################################################################################################
         ##########################################################################################################
@@ -1516,14 +1527,21 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
     ##########################################################################################################
     ##########################################################################################################
 
-    ##########################################################################################################
+    ###########################################################################################################
     ##########################################################################################################
     ##########################################################################################################
     ##########################################################################################################
     def CTRLc_RegisterHandlerFunction(self):
 
-        signal.signal(signal.SIGINT, self.CTRLc_HandlerFunction)
+        CurrentHandlerRegisteredForSIGINT = signal.getsignal(signal.SIGINT)
+        defaultish = (signal.SIG_DFL, signal.SIG_IGN, None, getattr(signal, "default_int_handler", None)) #Treat Python's built-in default handler as "unregistered"
 
+        if CurrentHandlerRegisteredForSIGINT in defaultish:  # Only install if it's default/ignored (i.e., nobody set it yet)
+            signal.signal(signal.SIGINT, self.CTRLc_HandlerFunction)
+            print("PhidgetStepperControllerVINT_ReubenPython3Class, CTRLc_RegisterHandlerFunction event fired!")
+
+        else:
+            print("PhidgetStepperControllerVINT_ReubenPython3Class, could not register CTRLc_RegisterHandlerFunction (already registered previously)")
     ##########################################################################################################
     ##########################################################################################################
     ##########################################################################################################
@@ -2566,8 +2584,8 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
 
             except:
                 exceptions = sys.exc_info()[0]
-                print("MainThread, exceptions: %s" % exceptions)
-                traceback.print_exc()
+                #print("MainThread, exceptions: %s" % exceptions)
+                #traceback.print_exc()
 
             ##########################################################################################################
             ##########################################################################################################
