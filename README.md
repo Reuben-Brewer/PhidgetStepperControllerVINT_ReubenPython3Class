@@ -24,7 +24,7 @@ www.reubotics.com
 
 Apache 2 License
 
-Software Revision E, 08/18/2025
+Software Revision F, 12/29/2025
 
 Verified working on:
 
@@ -32,17 +32,20 @@ Python 3.11/12
 
 Windows 10/11 64-bit
 
+Note: For bipolar/2-phase 4-wire stepper motors with standard phase-wire-coloration, the color-code is: A = Red, A- = Blue, B = Green, and B- = Black.
+When viewing the Phidgets controller from above with the wires going upwards into their screw-terminals, the wires appear in that order from left to right (red being left-most).
+
 ###########################
 
 ########################### Python module installation instructions, all OS's
 
-PhidgetStepperControllerVINT_ReubenPython3Class, ListOfModuleDependencies: ['LowPassFilterForDictsOfLists_ReubenPython2and3Class', 'numpy', 'Phidget22']
+PhidgetStepperControllerVINT_ReubenPython3Class, ListOfModuleDependencies: ['LowPassFilterForDictsOfLists_ReubenPython2and3Class', 'numpy', 'Phidget22', 'ReubenGithubCodeModulePaths']
 
-PhidgetStepperControllerVINT_ReubenPython3Class, ListOfModuleDependencies_TestProgram: ['EntryListWithBlinking_ReubenPython2and3Class', 'keyboard', 'MyPlotterPureTkinterStandAloneProcess_ReubenPython2and3Class']
+PhidgetStepperControllerVINT_ReubenPython3Class, ListOfModuleDependencies_TestProgram: ['EntryListWithBlinking_ReubenPython2and3Class', 'keyboard', 'MyPlotterPureTkinterStandAloneProcess_ReubenPython2and3Class', 'ReubenGithubCodeModulePaths']
 
-PhidgetStepperControllerVINT_ReubenPython3Class, ListOfModuleDependencies_NestedLayers: ['future.builtins', 'GetCPUandMemoryUsageOfProcessByPID_ReubenPython3Class', 'numpy', 'pexpect', 'psutil', 'pyautogui']
+PhidgetStepperControllerVINT_ReubenPython3Class, ListOfModuleDependencies_NestedLayers: ['GetCPUandMemoryUsageOfProcessByPID_ReubenPython3Class', 'numpy', 'pexpect', 'psutil', 'pyautogui', 'ReubenGithubCodeModulePaths']
 
-PhidgetStepperControllerVINT_ReubenPython3Class, ListOfModuleDependencies_All:['EntryListWithBlinking_ReubenPython2and3Class', 'future.builtins', 'GetCPUandMemoryUsageOfProcessByPID_ReubenPython3Class', 'keyboard', 'LowPassFilterForDictsOfLists_ReubenPython2and3Class', 'MyPlotterPureTkinterStandAloneProcess_ReubenPython2and3Class', 'numpy', 'pexpect', 'Phidget22', 'psutil', 'pyautogui']
+PhidgetStepperControllerVINT_ReubenPython3Class, ListOfModuleDependencies_All:['EntryListWithBlinking_ReubenPython2and3Class', 'GetCPUandMemoryUsageOfProcessByPID_ReubenPython3Class', 'keyboard', 'LowPassFilterForDictsOfLists_ReubenPython2and3Class', 'MyPlotterPureTkinterStandAloneProcess_ReubenPython2and3Class', 'numpy', 'pexpect', 'Phidget22', 'psutil', 'pyautogui', 'ReubenGithubCodeModulePaths']
 
 https://pypi.org/project/Phidget22/#files
 
