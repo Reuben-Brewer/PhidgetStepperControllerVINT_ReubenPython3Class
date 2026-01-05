@@ -6,15 +6,20 @@ reuben.brewer@gmail.com
 www.reubotics.com
 
 Apache 2 License
-Software Revision E, 08/18/2025
+Software Revision F, 12/29/2025
 
-Verified working on: Python 3.11/3.12 for Windows 10, 11 64-bit.
+Verified working on: Python 3.11/12/13 for Windows 10/11 64-bit and Raspberry Pi Bookworm (no Mac testing yet).
 '''
 
 __author__ = 'reuben.brewer'
 
 ##########################################################################################################
 ##########################################################################################################
+
+##########################################
+import ReubenGithubCodeModulePaths #Replaces the need to have "ReubenGithubCodeModulePaths.pth" within "C:\Anaconda3\Lib\site-packages".
+ReubenGithubCodeModulePaths.Enable()
+##########################################
 
 ##########################################
 from LowPassFilterForDictsOfLists_ReubenPython2and3Class import *
@@ -267,16 +272,6 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
                 self.USE_GUI_FLAG = 0
 
             print("PhidgetStepperControllerVINT_ReubenPython3Class __init__: USE_GUI_FLAG: " + str(self.USE_GUI_FLAG))
-            #########################################################
-            #########################################################
-
-            #########################################################
-            #########################################################
-            if "root" in GUIparametersDict:
-                self.root = GUIparametersDict["root"]
-            else:
-                print("PhidgetStepperControllerVINT_ReubenPython3Class __init__: ERROR, must pass in 'root'")
-                return
             #########################################################
             #########################################################
 
@@ -597,21 +592,21 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
 
         #########################################################
         #new_filtered_value = k * raw_sensor_value + (1 - k) * old_filtered_value
-        self.LowPassFilterForDictsOfLists_ReubenPython2and3ClassObject_DictOfVariableFilterSettings = dict([("DataStreamingFrequency_CalculatedFromPositionChangeCallback", dict([("UseMedianFilterFlag", 1), ("UseExponentialSmoothingFilterFlag", 1),("ExponentialSmoothingFilterLambda", 0.05)])),
-                                                                                                            ("DataStreamingFrequency_CalculatedFromMainThread", dict([("UseMedianFilterFlag", 1), ("UseExponentialSmoothingFilterFlag", 1),("ExponentialSmoothingFilterLambda", 0.05)])),
-                                                                                                            ("DataStreamingFrequency_CalculatedFromGUIthread", dict([("UseMedianFilterFlag", 1), ("UseExponentialSmoothingFilterFlag", 1), ("ExponentialSmoothingFilterLambda", 0.05)])),
-                                                                                                            ("VoltageInput_Value", dict([("UseMedianFilterFlag", 1), ("UseExponentialSmoothingFilterFlag", 1), ("ExponentialSmoothingFilterLambda", self.VoltageInput_Value_ExponentialSmoothingFilterLambda)])),
-                                                                                                            ("VoltageInputDerivative_Value", dict([("UseMedianFilterFlag", 1), ("UseExponentialSmoothingFilterFlag", 1), ("ExponentialSmoothingFilterLambda", self.VoltageInputDerivative_Value_ExponentialSmoothingFilterLambda)]))])
+        self.LowPassFilterForDictsOfLists_DictOfVariableFilterSettings = dict([("DataStreamingFrequency_CalculatedFromPositionChangeCallback", dict([("UseMedianFilterFlag", 0), ("UseExponentialSmoothingFilterFlag", 1),("ExponentialSmoothingFilterLambda", 0.05)])),
+                                                                                ("DataStreamingFrequency_CalculatedFromMainThread", dict([("UseMedianFilterFlag", 0), ("UseExponentialSmoothingFilterFlag", 1),("ExponentialSmoothingFilterLambda", 0.05)])),
+                                                                                ("DataStreamingFrequency_CalculatedFromGUIthread", dict([("UseMedianFilterFlag", 0), ("UseExponentialSmoothingFilterFlag", 1), ("ExponentialSmoothingFilterLambda", 0.05)])),
+                                                                                ("VoltageInput_Value", dict([("UseMedianFilterFlag", 0), ("UseExponentialSmoothingFilterFlag", 1), ("ExponentialSmoothingFilterLambda", self.VoltageInput_Value_ExponentialSmoothingFilterLambda)])),
+                                                                                ("VoltageInputDerivative_Value", dict([("UseMedianFilterFlag", 0), ("UseExponentialSmoothingFilterFlag", 1), ("ExponentialSmoothingFilterLambda", self.VoltageInputDerivative_Value_ExponentialSmoothingFilterLambda)]))])
 
-        self.LowPassFilterForDictsOfLists_ReubenPython2and3ClassObject_SetupDict = dict([("DictOfVariableFilterSettings", self.LowPassFilterForDictsOfLists_ReubenPython2and3ClassObject_DictOfVariableFilterSettings)])
+        self.LowPassFilterForDictsOfLists_SetupDict = dict([("DictOfVariableFilterSettings", self.LowPassFilterForDictsOfLists_DictOfVariableFilterSettings)])
 
-        self.LowPassFilterForDictsOfLists_ReubenPython2and3ClassObject = LowPassFilterForDictsOfLists_ReubenPython2and3Class(self.LowPassFilterForDictsOfLists_ReubenPython2and3ClassObject_SetupDict)
-        self.LOWPASSFILTER_OPEN_FLAG = self.LowPassFilterForDictsOfLists_ReubenPython2and3ClassObject.OBJECT_CREATED_SUCCESSFULLY_FLAG
+        self.LowPassFilterForDictsOfLists_Object = LowPassFilterForDictsOfLists_ReubenPython2and3Class(self.LowPassFilterForDictsOfLists_SetupDict)
+        self.LOWPASSFILTER_OPEN_FLAG = self.LowPassFilterForDictsOfLists_Object.OBJECT_CREATED_SUCCESSFULLY_FLAG
         #########################################################
 
         #########################################################
         if self.LOWPASSFILTER_OPEN_FLAG != 1:
-            print("PhidgetStepperControllerVINT_ReubenPython3Class __init__: Failed to open LowPassFilterForDictsOfLists_ReubenPython2and3ClassObject.")
+            print("PhidgetStepperControllerVINT_ReubenPython3Class __init__: Failed to open LowPassFilterForDictsOfLists_Object.")
             return
         #########################################################
 
@@ -1115,17 +1110,6 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
         ##########################################################################################################
         ##########################################################################################################
         ##########################################################################################################
-        if self.USE_GUI_FLAG == 1:
-            self.StartGUI(self.root)
-        ##########################################################################################################
-        ##########################################################################################################
-        ##########################################################################################################
-        ##########################################################################################################
-
-        ##########################################################################################################
-        ##########################################################################################################
-        ##########################################################################################################
-        ##########################################################################################################
         self.CTRLc_RegisterHandlerFunction()
         ##########################################################################################################
         ##########################################################################################################
@@ -1399,7 +1383,7 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
 
         self.LastVoltageInput_Value_Filtered = self.VoltageInput_Value_Filtered
 
-        VoltageInput_Value_ResultsDict = self.LowPassFilterForDictsOfLists_ReubenPython2and3ClassObject.AddDataDictFromExternalProgram(dict([("VoltageInput_Value", Voltage)]))
+        VoltageInput_Value_ResultsDict = self.LowPassFilterForDictsOfLists_Object.AddDataDictFromExternalProgram(dict([("VoltageInput_Value", Voltage)]))
 
         self.VoltageInput_Value_Raw = VoltageInput_Value_ResultsDict["VoltageInput_Value"]["Raw_MostRecentValuesList"][0]
         self.VoltageInput_Value_Filtered = VoltageInput_Value_ResultsDict["VoltageInput_Value"]["Filtered_MostRecentValuesList"][0]
@@ -1415,7 +1399,7 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
             ##########################################################################################################
             VoltageInputDerivative_Value_Raw_TEMP = (self.VoltageInput_Value_Filtered - self.LastVoltageInput_Value_Filtered)/(1.0/self.VoltageInput_ChangeableSettingsReadFromDevice["DataRate_Hz"])
 
-            VoltageInputDerivative_Value_ResultsDict = self.LowPassFilterForDictsOfLists_ReubenPython2and3ClassObject.AddDataDictFromExternalProgram(dict([("VoltageInputDerivative_Value", VoltageInputDerivative_Value_Raw_TEMP)]))
+            VoltageInputDerivative_Value_ResultsDict = self.LowPassFilterForDictsOfLists_Object.AddDataDictFromExternalProgram(dict([("VoltageInputDerivative_Value", VoltageInputDerivative_Value_Raw_TEMP)]))
 
             self.VoltageInputDerivative_Value_Raw = VoltageInputDerivative_Value_ResultsDict["VoltageInputDerivative_Value"]["Raw_MostRecentValuesList"][0]
             self.VoltageInputDerivative_Value_Filtered = VoltageInputDerivative_Value_ResultsDict["VoltageInputDerivative_Value"]["Filtered_MostRecentValuesList"][0]
@@ -1789,7 +1773,7 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
             if self.DataStreamingDeltaT_CalculatedFromPositionChangeCallback != 0.0:
                 DataStreamingFrequency_CalculatedFromPositionChangeCallback_TEMP = 1.0/self.DataStreamingDeltaT_CalculatedFromPositionChangeCallback
 
-                ResultsDict = self.LowPassFilterForDictsOfLists_ReubenPython2and3ClassObject.AddDataDictFromExternalProgram(dict([("DataStreamingFrequency_CalculatedFromPositionChangeCallback", DataStreamingFrequency_CalculatedFromPositionChangeCallback_TEMP)]))
+                ResultsDict = self.LowPassFilterForDictsOfLists_Object.AddDataDictFromExternalProgram(dict([("DataStreamingFrequency_CalculatedFromPositionChangeCallback", DataStreamingFrequency_CalculatedFromPositionChangeCallback_TEMP)]))
                 self.DataStreamingFrequency_CalculatedFromPositionChangeCallback = ResultsDict["DataStreamingFrequency_CalculatedFromPositionChangeCallback"]["Filtered_MostRecentValuesList"][0]
 
             self.LoopCounter_CalculatedFromPositionChangeCallback = self.LoopCounter_CalculatedFromPositionChangeCallback + 1
@@ -1811,7 +1795,7 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
             if self.DataStreamingDeltaT_CalculatedFromMainThread != 0.0:
                 DataStreamingFrequency_CalculatedFromMainThread_TEMP = 1.0/self.DataStreamingDeltaT_CalculatedFromMainThread
 
-                ResultsDict = self.LowPassFilterForDictsOfLists_ReubenPython2and3ClassObject.AddDataDictFromExternalProgram(dict([("DataStreamingFrequency_CalculatedFromMainThread", DataStreamingFrequency_CalculatedFromMainThread_TEMP)]))
+                ResultsDict = self.LowPassFilterForDictsOfLists_Object.AddDataDictFromExternalProgram(dict([("DataStreamingFrequency_CalculatedFromMainThread", DataStreamingFrequency_CalculatedFromMainThread_TEMP)]))
                 self.DataStreamingFrequency_CalculatedFromMainThread = ResultsDict["DataStreamingFrequency_CalculatedFromMainThread"]["Filtered_MostRecentValuesList"][0]
 
             self.LoopCounter_CalculatedFromMainThread = self.LoopCounter_CalculatedFromMainThread + 1
@@ -1835,7 +1819,7 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
             if self.DataStreamingDeltaT_CalculatedFromGUIthread != 0.0:
                 DataStreamingFrequency_CalculatedFromGUIthread_TEMP = 1.0/self.DataStreamingDeltaT_CalculatedFromGUIthread
 
-                ResultsDict = self.LowPassFilterForDictsOfLists_ReubenPython2and3ClassObject.AddDataDictFromExternalProgram(dict([("DataStreamingFrequency_CalculatedFromGUIthread", DataStreamingFrequency_CalculatedFromGUIthread_TEMP)]))
+                ResultsDict = self.LowPassFilterForDictsOfLists_Object.AddDataDictFromExternalProgram(dict([("DataStreamingFrequency_CalculatedFromGUIthread", DataStreamingFrequency_CalculatedFromGUIthread_TEMP)]))
                 self.DataStreamingFrequency_CalculatedFromGUIthread = ResultsDict["DataStreamingFrequency_CalculatedFromGUIthread"]["Filtered_MostRecentValuesList"][0]
 
             self.LoopCounter_CalculatedFromDedicatedGUIthread = self.LoopCounter_CalculatedFromDedicatedGUIthread + 1
@@ -2684,10 +2668,13 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
     def UpdateVariableFilterSettingsFromExternalProgram(self, VariableNameString, UseMedianFilterFlag, UseExponentialSmoothingFilterFlag, ExponentialSmoothingFilterLambda, PrintInfoForDebuggingFlag=0):
         try:
 
-            self.LowPassFilterForDictsOfLists_ReubenPython2and3ClassObject.UpdateVariableFilterSettingsFromExternalProgram(VariableNameString, UseMedianFilterFlag, UseExponentialSmoothingFilterFlag, ExponentialSmoothingFilterLambda)
+            if VariableNameString.lower().find("derivative") != -1: #Don't want a median filter on a signal that's being numerically-differentiated
+                UseMedianFilterFlag = 0
 
-            self.VoltageInput_Value_ExponentialSmoothingFilterLambda = self.LowPassFilterForDictsOfLists_ReubenPython2and3ClassObject.GetMostRecentDataDict()["VoltageInput_Value"]["ExponentialSmoothingFilterLambda"]
-            self.VoltageInputDerivative_Value_ExponentialSmoothingFilterLambda = self.LowPassFilterForDictsOfLists_ReubenPython2and3ClassObject.GetMostRecentDataDict()["VoltageInputDerivative_Value"]["ExponentialSmoothingFilterLambda"]
+            self.LowPassFilterForDictsOfLists_Object.UpdateVariableFilterSettingsFromExternalProgram(VariableNameString, UseMedianFilterFlag, UseExponentialSmoothingFilterFlag, ExponentialSmoothingFilterLambda)
+
+            self.VoltageInput_Value_ExponentialSmoothingFilterLambda = self.LowPassFilterForDictsOfLists_Object.GetMostRecentDataDict()["VoltageInput_Value"]["ExponentialSmoothingFilterLambda"]
+            self.VoltageInputDerivative_Value_ExponentialSmoothingFilterLambda = self.LowPassFilterForDictsOfLists_Object.GetMostRecentDataDict()["VoltageInputDerivative_Value"]["ExponentialSmoothingFilterLambda"]
 
             ##########################################################################################################
             if PrintInfoForDebuggingFlag==1:
@@ -2710,23 +2697,15 @@ class PhidgetStepperControllerVINT_ReubenPython3Class(Frame): #Subclass the Tkin
 
     ##########################################################################################################
     ##########################################################################################################
-    def StartGUI(self, GuiParent):
+    def CreateGUIobjects(self, TkinterParent):
 
-        self.GUI_Thread(GuiParent)
-    ##########################################################################################################
-    ##########################################################################################################
-
-    ##########################################################################################################
-    ##########################################################################################################
-    def GUI_Thread(self, parent):
-
-        print("Starting the GUI_Thread for PhidgetStepperControllerVINT_ReubenPython3Class object.")
+        print("PhidgetStepperControllerVINT_ReubenPython3Class, CreateGUIobjects event fired.")
 
         #################################################
         #################################################
         #################################################
-        self.root = parent
-        self.parent = parent
+        self.root = TkinterParent
+        self.parent = TkinterParent
         #################################################
         #################################################
         #################################################

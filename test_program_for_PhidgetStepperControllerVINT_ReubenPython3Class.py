@@ -6,12 +6,20 @@ reuben.brewer@gmail.com
 www.reubotics.com
 
 Apache 2 License
-Software Revision E, 08/18/2025
+Software Revision F, 12/29/2025
 
-Verified working on: Python 3.11/3.12 for Windows 10, 11 64-bit.
+Verified working on: Python 3.11/12/13 for Windows 10/11 64-bit and Raspberry Pi Bookworm (no Mac testing yet).
 '''
 
 __author__ = 'reuben.brewer'
+
+##########################################################################################################
+##########################################################################################################
+
+##########################################
+import ReubenGithubCodeModulePaths #Replaces the need to have "ReubenGithubCodeModulePaths.pth" within "C:\Anaconda3\Lib\site-packages".
+ReubenGithubCodeModulePaths.Enable()
+##########################################
 
 ##########################################
 from EntryListWithBlinking_ReubenPython2and3Class import *
@@ -28,6 +36,8 @@ import datetime
 import threading
 import collections
 import signal #for CTRLc_HandlerFunction
+import math
+import traceback
 import keyboard
 ##########################################
 
@@ -44,6 +54,9 @@ if platform.system() == "Windows":
     winmm = ctypes.WinDLL('winmm')
     winmm.timeBeginPeriod(1) #Set minimum timer resolution to 1ms so that time.sleep(0.001) behaves properly.
 ##########################################
+
+##########################################################################################################
+##########################################################################################################
 
 #######################################################################################################################
 #######################################################################################################################
@@ -414,16 +427,17 @@ def GUI_update_clock():
     global DataStreamingFrequency_CalculatedFromGUIthread
     global DataStreamingDeltaT_CalculatedFromGUIthread
 
-    global EntryListWithBlinking_Object
-    global EntryListWithBlinking_OPEN_FLAG
-
     global PhidgetStepperControllerVINT_Object
     global PhidgetStepperControllerVINT_OPEN_FLAG
     global SHOW_IN_GUI_PhidgetStepperControllerVINT_FLAG
     global PhidgetStepperControllerVINT_MostRecentDict
     global PhidgetStepperControllerVINT_MostRecentDict_Label
 
+    global EntryListWithBlinking_Object
+    global EntryListWithBlinking_OPEN_FLAG
+
     if USE_GUI_FLAG == 1:
+
         if EXIT_PROGRAM_FLAG == 0:
         #########################################################
         #########################################################
@@ -444,13 +458,13 @@ def GUI_update_clock():
                 #########################################################
 
                 #########################################################
-                if EntryListWithBlinking_OPEN_FLAG == 1:
-                    EntryListWithBlinking_Object.GUI_update_clock()
+                if PhidgetStepperControllerVINT_OPEN_FLAG == 1 and SHOW_IN_GUI_PhidgetStepperControllerVINT_FLAG == 1:
+                    PhidgetStepperControllerVINT_Object.GUI_update_clock()
                 #########################################################
 
                 #########################################################
-                if PhidgetStepperControllerVINT_OPEN_FLAG == 1 and SHOW_IN_GUI_PhidgetStepperControllerVINT_FLAG == 1:
-                    PhidgetStepperControllerVINT_Object.GUI_update_clock()
+                if EntryListWithBlinking_OPEN_FLAG == 1:
+                    EntryListWithBlinking_Object.GUI_update_clock()
                 #########################################################
 
                 #########################################################
@@ -524,9 +538,19 @@ def GUI_Thread():
     global GUI_RootAfterCallbackInterval_Milliseconds
     global USE_TABS_IN_GUI_FLAG
 
+    global PhidgetStepperControllerVINT_Object
+    global PhidgetStepperControllerVINT_OPEN_FLAG
+
+    global EntryListWithBlinking_Object
+    global EntryListWithBlinking_OPEN_FLAG
+
     ################################################# KEY GUI LINE
     #################################################
     root = Tk()
+
+    root.protocol("WM_DELETE_WINDOW", ExitProgram_Callback)  # Set the callback function for when the window's closed.
+    root.title("test_program_for_PhidgetStepperControllerVINT_ReubenPython3Class")
+    root.geometry('%dx%d+%d+%d' % (root_width, root_height, root_Xpos, root_Ypos)) # set the dimensions of the screen and where it is placed
     #################################################
     #################################################
 
@@ -552,6 +576,7 @@ def GUI_Thread():
         TabStyle = ttk.Style()
         TabStyle.configure('TNotebook.Tab', font=('Helvetica', '12', 'bold'))
         #############
+
         #################################################
     else:
         #################################################
@@ -559,7 +584,8 @@ def GUI_Thread():
         Tab_PhidgetStepperControllerVINT = root
         #################################################
 
-    ##########################################################################################################
+    #################################################
+    #################################################
 
     #################################################
     #################################################
@@ -593,19 +619,32 @@ def GUI_Thread():
     #################################################
     #################################################
 
-    ##########################################################################################################
+    #################################################
+    #################################################
+    if PhidgetStepperControllerVINT_OPEN_FLAG == 1:
+        PhidgetStepperControllerVINT_Object.CreateGUIobjects(TkinterParent=Tab_PhidgetStepperControllerVINT)
+    #################################################
+    #################################################
+
+    #################################################
+    #################################################
+    if EntryListWithBlinking_OPEN_FLAG == 1:
+        EntryListWithBlinking_Object.CreateGUIobjects(TkinterParent=Tab_MainControls)
+    #################################################
+    #################################################
 
     ################################################# THIS BLOCK MUST COME 2ND-TO-LAST IN def GUI_Thread() IF USING TABS.
-    root.protocol("WM_DELETE_WINDOW", ExitProgram_Callback)  # Set the callback function for when the window's closed.
-    root.title("test_program_for_PhidgetStepperControllerVINT_ReubenPython3Class")
-    root.geometry('%dx%d+%d+%d' % (root_width, root_height, root_Xpos, root_Ypos)) # set the dimensions of the screen and where it is placed
+    #################################################
     root.after(GUI_RootAfterCallbackInterval_Milliseconds, GUI_update_clock)
     root.mainloop()
     #################################################
+    #################################################
 
     #################################################  THIS BLOCK MUST COME LAST IN def GUI_Thread() REGARDLESS OF CODE.
+    #################################################
     root.quit() #Stop the GUI thread, MUST BE CALLED FROM GUI_Thread
     root.destroy() #Close down the GUI thread, MUST BE CALLED FROM GUI_Thread
+    #################################################
     #################################################
 
 ##########################################################################################################
@@ -684,7 +723,7 @@ if __name__ == '__main__':
     USE_KEYBOARD_FLAG = 1
 
     global USE_PeriodicInput_FLAG
-    USE_PeriodicInput_FLAG = 0
+    USE_PeriodicInput_FLAG = 1
     #################################################
     #################################################
 
@@ -793,7 +832,7 @@ if __name__ == '__main__':
     global PeriodicInput_MaxValue_1
     PeriodicInput_MaxValue_1 = 0.5
 
-    global PeriodicInput_Period_1 #unicorn
+    global PeriodicInput_Period_1
     PeriodicInput_Period_1 = 3.0
 
     global PeriodicInput_CalculatedValue_1
@@ -847,15 +886,15 @@ if __name__ == '__main__':
 
     global PhidgetStepperControllerVINT_MostRecentDict_Position_ToBeSet_AllUnitsDict
     PhidgetStepperControllerVINT_MostRecentDict_Position_ToBeSet_AllUnitsDict = dict([("PhidgetsUnits", 0.0),
-                                                                                                    ("Deg", 0.0),
-                                                                                                    ("Rad", 0.0),
-                                                                                                    ("Rev", 0.0)])
+                                                                                    ("Deg", 0.0),
+                                                                                    ("Rad", 0.0),
+                                                                                    ("Rev", 0.0)])
 
     global PhidgetStepperControllerVINT_MostRecentDict_Position_Actual_AllUnitsDict
     PhidgetStepperControllerVINT_MostRecentDict_Position_Actual_AllUnitsDict = dict([("PhidgetsUnits", 0.0),
-                                                                                                    ("Deg", 0.0),
-                                                                                                    ("Rad", 0.0),
-                                                                                                    ("Rev", 0.0)])
+                                                                                    ("Deg", 0.0),
+                                                                                    ("Rad", 0.0),
+                                                                                    ("Rev", 0.0)])
 
     global PhidgetStepperControllerVINT_MostRecentDict_VoltageInput_Value_Raw
     PhidgetStepperControllerVINT_MostRecentDict_VoltageInput_Value_Raw = 0.0
@@ -896,52 +935,35 @@ if __name__ == '__main__':
     ##########################################################################################################
     ##########################################################################################################
 
-    ########################################################################################################## KEY GUI LINE
-    ##########################################################################################################
-    ##########################################################################################################
-    if USE_GUI_FLAG == 1:
-        print("Starting GUI thread...")
-        GUI_Thread_ThreadingObject = threading.Thread(target=GUI_Thread)
-        GUI_Thread_ThreadingObject.setDaemon(True) #Should mean that the GUI thread is destroyed automatically when the main thread is destroyed.
-        GUI_Thread_ThreadingObject.start()
-        time.sleep(0.5)  #Allow enough time for 'root' to be created that we can then pass it into other classes.
-    else:
-        root = None
-        Tab_MainControls = None
-        Tab_PhidgetStepperControllerVINT = None
-    ##########################################################################################################
-    ##########################################################################################################
-    ##########################################################################################################
-
     ##########################################################################################################
     ##########################################################################################################
     ##########################################################################################################
 
     #################################################
     #################################################
-    global EntryListWithBlinking_Object_GUIparametersDict
-    EntryListWithBlinking_Object_GUIparametersDict = dict([("root", Tab_MainControls),
-                                                                                ("UseBorderAroundThisGuiObjectFlag", 0),
-                                                                                ("GUI_ROW", GUI_ROW_EntryListWithBlinking),
-                                                                                ("GUI_COLUMN", GUI_COLUMN_EntryListWithBlinking),
-                                                                                ("GUI_PADX", GUI_PADX_EntryListWithBlinking),
-                                                                                ("GUI_PADY", GUI_PADY_EntryListWithBlinking),
-                                                                                ("GUI_ROWSPAN", GUI_ROWSPAN_EntryListWithBlinking),
-                                                                                ("GUI_COLUMNSPAN", GUI_COLUMNSPAN_EntryListWithBlinking)])
+    global EntryListWithBlinking_GUIparametersDict
+    EntryListWithBlinking_GUIparametersDict = dict([("UseBorderAroundThisGuiObjectFlag", 0),
+                                                    ("GUI_ROW", GUI_ROW_EntryListWithBlinking),
+                                                    ("GUI_COLUMN", GUI_COLUMN_EntryListWithBlinking),
+                                                    ("GUI_PADX", GUI_PADX_EntryListWithBlinking),
+                                                    ("GUI_PADY", GUI_PADY_EntryListWithBlinking),
+                                                    ("GUI_ROWSPAN", GUI_ROWSPAN_EntryListWithBlinking),
+                                                    ("GUI_COLUMNSPAN", GUI_COLUMNSPAN_EntryListWithBlinking)])
 
     global EntryListWithBlinking_Variables_ListOfDicts
     EntryListWithBlinking_Variables_ListOfDicts = [dict([("Name", "PhidgetStepperControllerVINT_StallDetectionThreshold"),("Type", "float"),("StartingVal", PhidgetStepperControllerVINT_StallDetectionThreshold),("MinVal", 0.0),("MaxVal", 1000.0),("EntryBlinkEnabled", 0),("EntryWidth", EntryWidth),("LabelWidth", LabelWidth),("FontSize", FontSize)]),
                                                    dict([("Name", "PhidgetStepperControllerVINT_VoltageInput_Value_ExponentialSmoothingFilterLambda"),("Type", "float"),("StartingVal", PhidgetStepperControllerVINT_VoltageInput_Value_ExponentialSmoothingFilterLambda),("MinVal", 0.0),("MaxVal", 1.0),("EntryBlinkEnabled", 0),("EntryWidth", EntryWidth),("LabelWidth", LabelWidth),("FontSize", FontSize)]),
                                                    dict([("Name", "PhidgetStepperControllerVINT_VoltageInputDerivative_Value_ExponentialSmoothingFilterLambda"),("Type", "float"),("StartingVal", PhidgetStepperControllerVINT_VoltageInputDerivative_Value_ExponentialSmoothingFilterLambda),("MinVal", 0.0),("MaxVal", 1.0),("EntryBlinkEnabled", 0),("EntryWidth", EntryWidth),("LabelWidth", LabelWidth),("FontSize", FontSize)])]
 
-    global EntryListWithBlinking_Object_SetupDict
-    EntryListWithBlinking_Object_SetupDict = dict([("GUIparametersDict", EntryListWithBlinking_Object_GUIparametersDict),
-                                                                          ("EntryListWithBlinking_Variables_ListOfDicts", EntryListWithBlinking_Variables_ListOfDicts),
-                                                                          ("DebugByPrintingVariablesFlag", 0),
-                                                                          ("LoseFocusIfMouseLeavesEntryFlag", 0)])
+    global EntryListWithBlinking_SetupDict
+    EntryListWithBlinking_SetupDict = dict([("GUIparametersDict", EntryListWithBlinking_GUIparametersDict),
+                                          ("EntryListWithBlinking_Variables_ListOfDicts", EntryListWithBlinking_Variables_ListOfDicts),
+                                          ("DebugByPrintingVariablesFlag", 0),
+                                          ("LoseFocusIfMouseLeavesEntryFlag", 0)])
+
     if USE_EntryListWithBlinking_FLAG == 1 and EXIT_PROGRAM_FLAG == 0:
         try:
-            EntryListWithBlinking_Object = EntryListWithBlinking_ReubenPython2and3Class(EntryListWithBlinking_Object_SetupDict)
+            EntryListWithBlinking_Object = EntryListWithBlinking_ReubenPython2and3Class(EntryListWithBlinking_SetupDict)
             EntryListWithBlinking_OPEN_FLAG = EntryListWithBlinking_Object.OBJECT_CREATED_SUCCESSFULLY_FLAG
 
         except:
@@ -956,7 +978,7 @@ if __name__ == '__main__':
     if USE_EntryListWithBlinking_FLAG == 1:
         if EXIT_PROGRAM_FLAG == 0:
             if EntryListWithBlinking_OPEN_FLAG != 1:
-                print("Failed to open EntryListWithBlinking_ReubenPython2and3Class.")
+                print("Failed to open EntryListWithBlinking_Object.")
                 ExitProgram_Callback()
     #################################################
     #################################################
@@ -973,7 +995,6 @@ if __name__ == '__main__':
     #################################################
     global PhidgetStepperControllerVINT_GUIparametersDict
     PhidgetStepperControllerVINT_GUIparametersDict = dict([("USE_GUI_FLAG", USE_GUI_FLAG and SHOW_IN_GUI_PhidgetStepperControllerVINT_FLAG),
-                                                            ("root", Tab_PhidgetStepperControllerVINT),
                                                             ("EnableInternal_MyPrint_Flag", 0),
                                                             ("NumberOfPrintLines", 10),
                                                             ("UseBorderAroundThisGuiObjectFlag", 0),
@@ -1010,7 +1031,7 @@ if __name__ == '__main__':
     PhidgetStepperControllerVINT_SetupDict = dict([("GUIparametersDict", PhidgetStepperControllerVINT_GUIparametersDict),
                                                    ("UsePhidgetsLoggingInternalToThisClassObjectFlag", 1),
                                                    ("VINT_DesiredSerialNumber", -1),  # CHANGE THIS TO MATCH YOUR UNIQUE VINT 723183, 765592
-                                                   ("VINT_DesiredPortNumber", 5),  # CHANGE THIS TO MATCH YOUR UNIQUE VINT
+                                                   ("VINT_DesiredPortNumber", 0),  # CHANGE THIS TO MATCH YOUR UNIQUE VINT
                                                    ("DesiredDeviceID", -1), #118, 149
                                                    ("WaitForAttached_TimeoutDuration_Milliseconds", 1000),
                                                    ("MainThread_TimeToSleepEachLoop", 0.008),
@@ -1160,6 +1181,21 @@ if __name__ == '__main__':
     ##########################################################################################################
     ##########################################################################################################
 
+    ########################################################################################################## KEY GUI LINE
+    ##########################################################################################################
+    ##########################################################################################################
+    if USE_GUI_FLAG == 1 and EXIT_PROGRAM_FLAG == 0:
+        print("Starting GUI thread...")
+        GUI_Thread_ThreadingObject = threading.Thread(target=GUI_Thread, daemon=True) #Daemon=True means that the GUI thread is destroyed automatically when the main thread is destroyed
+        GUI_Thread_ThreadingObject.start()
+    else:
+        root = None
+        Tab_MainControls = None
+        Tab_PhidgetStepperControllerVINT = None
+    ##########################################################################################################
+    ##########################################################################################################
+    ##########################################################################################################
+
     ##########################################################################################################
     ##########################################################################################################
     ##########################################################################################################
@@ -1212,13 +1248,13 @@ if __name__ == '__main__':
                         PhidgetStepperControllerVINT_Object.UpdateStallDetectionThreshold(PhidgetStepperControllerVINT_StallDetectionThreshold)
 
                         PhidgetStepperControllerVINT_Object.UpdateVariableFilterSettingsFromExternalProgram("VoltageInput_Value",
-                                                                                                            UseMedianFilterFlag=1,
+                                                                                                            UseMedianFilterFlag=0, #Only apply median filter if you're seeing impulse noise
                                                                                                             UseExponentialSmoothingFilterFlag=1,
                                                                                                             ExponentialSmoothingFilterLambda=PhidgetStepperControllerVINT_VoltageInput_Value_ExponentialSmoothingFilterLambda,
                                                                                                             PrintInfoForDebuggingFlag=0)
 
                         PhidgetStepperControllerVINT_Object.UpdateVariableFilterSettingsFromExternalProgram("VoltageInputDerivative_Value",
-                                                                                                             UseMedianFilterFlag=1,
+                                                                                                             UseMedianFilterFlag=0, #typically don't need a median filter for numerical differentiation.
                                                                                                              UseExponentialSmoothingFilterFlag=1,
                                                                                                              ExponentialSmoothingFilterLambda=PhidgetStepperControllerVINT_VoltageInputDerivative_Value_ExponentialSmoothingFilterLambda,
                                                                                                              PrintInfoForDebuggingFlag=0)
@@ -1314,7 +1350,7 @@ if __name__ == '__main__':
                     if MyPlotterPureTkinterStandAloneProcess0_MostRecentDict_StandAlonePlottingProcess_ReadyForWritingFlag == 1:
                         if CurrentTime_CalculatedFromMainThread - LastTime_CalculatedFromMainThread_MyPlotterPureTkinterStandAloneProcess0 >= 0.030:
 
-                            '''
+                            #'''
                             ####################################################
                             ListOfValuesToPlot = []
                             ListOfCurveNamesToPlot = []
@@ -1326,8 +1362,9 @@ if __name__ == '__main__':
                             ListOfValuesToPlot.append(PhidgetStepperControllerVINT_MostRecentDict_Position_Actual_AllUnitsDict["Deg"])
                             ListOfCurveNamesToPlot.append(MyPlotterPureTkinterStandAloneProcess0_NameList[1])
                             ####################################################
-                            '''
+                            #'''
 
+                            '''
                             ####################################################
                             ListOfValuesToPlot = []
                             ListOfCurveNamesToPlot = []
@@ -1338,6 +1375,7 @@ if __name__ == '__main__':
                             ListOfCurveNamesToPlot.append(MyPlotterPureTkinterStandAloneProcess0_NameList[0])
                             ListOfCurveNamesToPlot.append(MyPlotterPureTkinterStandAloneProcess0_NameList[1])
                             ####################################################
+                            '''
 
                             ####################################################
                             MyPlotterPureTkinterStandAloneProcess0_Object.ExternalAddPointOrListOfPointsToPlot(ListOfCurveNamesToPlot,
